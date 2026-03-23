@@ -98,3 +98,31 @@ class FinancialMetric(BaseModel):
     name: str = Field(..., description="Metric display name")
     formula: Optional[str] = Field(default=None, description="Calculation formula")
     category: str = Field(..., description="Metric category")
+
+
+class IndustryClassification(BaseModel):
+    code: str = Field(..., description="Industry code")
+    name: str = Field(..., description="Industry name")
+    level: str = Field(..., description="Industry level (1, 2, 3)")
+
+
+class PeerComparisonRequest(BaseModel):
+    code: str = Field(..., description="Stock code")
+    industry_type: str = Field(default="csrc", description="Industry classification type: csrc, sw1, sw3")
+    metrics: list[str] = Field(default_factory=list, description="Metrics to compare")
+
+
+class PeerMetric(BaseModel):
+    metric: str = Field(..., description="Metric identifier")
+    value: Optional[float] = Field(default=None, description="Metric value")
+    industry_avg: Optional[float] = Field(default=None, description="Industry average")
+    industry_median: Optional[float] = Field(default=None, description="Industry median")
+    percentile: Optional[float] = Field(default=None, description="Percentile rank in industry (0-100)")
+
+
+class PeerComparisonResponse(BaseModel):
+    code: str = Field(..., description="Stock code")
+    name: str = Field(..., description="Company name")
+    industry: str = Field(..., description="Industry name")
+    peers_count: int = Field(..., description="Number of peers in industry")
+    metrics: list[PeerMetric] = Field(default_factory=list, description="Comparison metrics")

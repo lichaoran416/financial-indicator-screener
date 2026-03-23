@@ -8,7 +8,7 @@
 | Backend Core (main.py, config.py, redis.py) | ✅ Complete | |
 | Backend Pydantic Models | ✅ Complete | |
 | Backend API Endpoints (screen, company, metrics, cache) | ✅ Complete | |
-| Backend Financial Service | ✅ Complete | Uses listing_status for ACTIVE/SUSPENDED/DELISTED; ST/*ST detection from stock name |
+| Backend Financial Service | ✅ Complete | Uses listing_status for ACTIVE/SUSPENDED/DELISTED; ST/*ST detection from stock name; Bug fix: Pass period from conditions to get_company_metrics |
 | Backend Akshare Client | ✅ Complete | get_stock_list() extracts listing_status from stock_zh_a_spot_em |
 | Frontend App.tsx with Routing | ✅ Complete | Lazy loading implemented |
 | Frontend API Client | ✅ Complete | |
@@ -28,30 +28,11 @@
 
 ## NOT YET IMPLEMENTED (Confirmed Missing via Code Search)
 
-### Critical - Custom Formula Engine (JTB-005, JTB-006) - SPEC: specs/08_custom_formula.md
-| Component | Status | Notes |
-|-----------|--------|-------|
-| Formula Lexer | ✅ Complete | Tokenizes formula strings |
-| Formula Parser | ✅ Complete | Parses tokens into AST |
-| Formula Evaluator | ✅ Complete | Evaluates AST against financial data |
-| Formula Service | ✅ Complete | Business logic for formula operations |
-| Formula API Endpoints | ✅ Complete | validate, evaluate, save, delete |
-| FormulaEditor UI Component | ✅ Complete | With syntax validation and saved formulas |
-| Custom Formula Storage | ✅ Complete | Redis-backed storage |
-
-**Requirements per spec:**
-- Operators: +, -, *, /, ()
-- Functions: AVG(), SUM(), MIN(), MAX(), STD()
-- Metric references: `净利润 / 总资产`
-- Time series: `ROE[2023]`, `AVG(ROE[2020:2024])`
-- Syntax validation & error messages
-- Formula naming & saving
-
 ### High Priority - Data Accuracy Issues
 | Component | Status | Spec Reference | Issue |
 |-----------|--------|---------------|-------|
 | TTM Rolling 12-month | ✅ Complete | specs/02_financial_metrics.md | Uses latest value, not rolling 12-month aggregation |
-| Data Disclosure Timing | ❌ Missing | specs/03_data_source.md | No quarterly/annual cycle alignment (Q1: Apr, Q2: Aug, Q3: Oct, Q4: Mar-Apr) |
+| Data Disclosure Timing | ❌ Missing | specs/03_data_source.md | No quarterly/annual cycle alignment (Q1: Apr, Q2: Aug, Q3: Oct, Q4: Mar-Apr); Needs further analysis - complex feature requiring understanding of when quarterly data becomes available |
 
 ### Medium Priority - Industry Comparison (JTB-011, JTB-012, JTB-013) - SPEC: specs/10_industry_comparison.md
 | Component | Status | Notes |

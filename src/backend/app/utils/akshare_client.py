@@ -110,7 +110,9 @@ class AkshareClient:
                 code = str(row.get("代码", ""))
                 name = str(row.get("名称", ""))
                 industry = str(row.get("行业", "")) if pd.notna(row.get("行业")) else None
-                listing_status = str(row.get("上市状态", "上市")) if pd.notna(row.get("上市状态")) else "上市"
+                listing_status = (
+                    str(row.get("上市状态", "上市")) if pd.notna(row.get("上市状态")) else "上市"
+                )
                 result.append(
                     {
                         "code": code,
@@ -199,6 +201,99 @@ class AkshareClient:
             return None
         except Exception:
             return None
+
+    async def get_industry_csrc(self) -> list[dict[str, Any]]:
+        try:
+            df = await self._retry_async(ak.stock_info_csrc_main)
+            if df is None or df.empty:
+                return []
+            result = []
+            for _, row in df.iterrows():
+                result.append(
+                    {
+                        "code": str(row.get("股票代码", "")),
+                        "name": str(row.get("股票简称", "")),
+                        "industry_csrc": str(row.get("行业分类", "")),
+                    }
+                )
+            return result
+        except AkshareAPIError:
+            return []
+        except Exception:
+            return []
+
+    async def get_industry_sw_one(self) -> list[dict[str, Any]]:
+        try:
+            df = await self._retry_async(ak.sw_index_one)
+            if df is None or df.empty:
+                return []
+            result = []
+            for _, row in df.iterrows():
+                result.append(
+                    {
+                        "code": str(row.get("行业代码", "")),
+                        "name": str(row.get("行业名称", "")),
+                        "level": "1",
+                    }
+                )
+            return result
+        except AkshareAPIError:
+            return []
+        except Exception:
+            return []
+
+    async def get_industry_sw_three(self) -> list[dict[str, Any]]:
+        try:
+            df = await self._retry_async(ak.sw_index_three)
+            if df is None or df.empty:
+                return []
+            result = []
+            for _, row in df.iterrows():
+                result.append(
+                    {
+                        "code": str(row.get("行业代码", "")),
+                        "name": str(row.get("行业名称", "")),
+                        "level": "3",
+                    }
+                )
+            return result
+        except AkshareAPIError:
+            return []
+        except Exception:
+            return []
+
+    async def get_industry_peers(self, symbol: str, industry_type: str = "csrc") -> list[str]:
+        try:
+            normalized_symbol = self._normalize_symbol(symbol)
+            if industry_type == "csrc":
+                df = await self._retry_async(ak.stock_info_csrc_main)
+                if df is None or df.empty:
+                    return []
+                company_industry = None
+                for _, row in df.iterrows():
+                    if str(row.get("股票代码", "")) == normalized_symbol.replace("SH", "").replace(
+                        "SZ", ""
+                    ).replace("BJ", ""):
+                        company_industry = str(row.get("行业分类", ""))
+                        break
+                if not company_industry:
+                    return []
+                peers = []
+                for _, row in df.iterrows():
+                    if str(row.get("行业分类", "")) == company_industry:
+                        peer_code = str(row.get("股票代码", ""))
+                        if not peer_code.startswith(("SH", "SZ", "BJ")):
+                            if peer_code.startswith(("6", "5", "9")):
+                                peer_code = f"SH{peer_code}"
+                            elif peer_code.startswith(("0", "1", "2", "3", "4")):
+                                peer_code = f"SZ{peer_code}"
+                        peers.append(peer_code)
+                return peers
+            return []
+        except AkshareAPIError:
+            return []
+        except Exception:
+            return []
 
     def _normalize_symbol(self, symbol: str) -> str:
         symbol = symbol.strip().upper()
