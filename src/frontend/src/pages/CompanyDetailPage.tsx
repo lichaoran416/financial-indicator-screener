@@ -3,6 +3,7 @@ import { useParams, A } from '@solidjs/router';
 import { Chart, registerables } from 'chart.js';
 import { getCompany, CompanyDetailResponse } from '../api/company';
 import { LoadingSpinner, ErrorState } from '../components/common';
+import { PeerComparison } from '../components/comparison/PeerComparison';
 
 Chart.register(...registerables);
 
@@ -340,6 +341,12 @@ export default function CompanyDetailPage() {
             </div>
           </Show>
         </section>
+
+        <PeerComparison
+          stockCode={company()!.code}
+          stockName={company()!.name}
+          currentIndustry={company()!.industry}
+        />
       </Show>
     </div>
   );

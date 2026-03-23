@@ -115,7 +115,9 @@
 | SW (申万) Classification API | ✅ Complete | GET /industry/sw-one, GET /industry/sw-three |
 | Peer Comparison API | ✅ Complete | Calculates actual metrics, industry_avg, median, percentile |
 | Industry Benchmark Calculation | ✅ Complete | Included in peer comparison API |
-| RadarChart Component | ❌ Missing | No radar/spider chart for multi-metric comparison |
+| RadarChart Component | ✅ Complete | Radar/spider chart for multi-metric comparison |
+| PeerComparison Component | ✅ Complete | Displays peer metrics table with percentile |
+| Industry Type Selector | ✅ Complete | CSRC/SW1/SW3 selector in PeerComparison UI |
 | Multi-industry Selection UI | ❌ Missing | No multi-select for industry filter |
 | Exclude Industry Option | ❌ Missing | No exclude industry feature |
 | Industry Filter in Frontend | ❌ Missing | Backend supports but UI doesn't expose |
@@ -194,7 +196,8 @@
 ### Phase 11: Industry Comparison (JTB-011, JTB-012, JTB-013)
 - [x] Implement peer comparison API endpoint with actual metrics calculation
 - [x] Create industry benchmark calculation (avg, median, percentile)
-- [ ] Create RadarChart component
+- [x] Create RadarChart component
+- [x] Create PeerComparison component with industry type selector
 - [ ] Add multi-industry selection to screening UI
 - [ ] Add exclude industry option to screening UI
 - [ ] Expose industry filter in frontend (currently backend-only)
@@ -236,8 +239,8 @@
 | specs/07_ux.md | UX requirements | ⚠️ Partial | Lazy loading done; virtual scrolling/debounce missing |
 | specs/08_custom_formula.md | Custom formula engine | ✅ Complete | Formula lexer, parser, evaluator, service, API, and UI |
 | specs/09_edge_cases.md | Edge case handling | ⚠️ Partial | Status/risk flags done; N/A marking incomplete |
-| specs/10_industry_comparison.md | Industry comparison | ⚠️ Partial | CSRC/SW APIs done; peer comparison, benchmark, radar chart pending |
-| specs/11_visualization.md | Data visualization | ❌ NOT STARTED | No visualization components exist |
+| specs/10_industry_comparison.md | Industry comparison | ⚠️ Partial | CSRC/SW APIs done; peer comparison, benchmark, radar chart done |
+| specs/11_visualization.md | Data visualization | ⚠️ Partial | RadarChart component done; TreeMap, TrendComparisonChart, ValueSlider, IndustryHeatmap, ConditionTree missing |
 
 ---
 
