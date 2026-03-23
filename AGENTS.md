@@ -5,6 +5,7 @@
 cd src/frontend
 npm install
 npm run dev
+npm run build  # Production build
 ```
 
 **Backend (FastAPI)**
@@ -21,9 +22,15 @@ redis-server
 
 ## Validation
 
-- Tests: `pytest tests/backend/` (backend) / `npm test` (frontend)
+- Tests: `pytest tests/backend/` (backend) / `npm test` (frontend) [Note: frontend tests have path resolution issues on Windows]
 - Typecheck: `mypy src/backend/` (backend) / `npm run typecheck` (frontend)
 - Lint: `ruff check src/backend/` (backend) / `npm run lint` (frontend)
+
+## Known Issues
+
+- eslint-plugin-solid latest version is 0.14.5, not 8.x - ensure package.json uses correct version
+- Frontend vitest tests are in `tests/frontend/` but path resolution on Windows requires careful configuration
+- Python dependencies require pip which may not be available on all systems
 
 ## Operational Notes
 
