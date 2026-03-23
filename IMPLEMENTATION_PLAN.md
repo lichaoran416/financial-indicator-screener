@@ -50,7 +50,7 @@
 ### High Priority - Data Accuracy Issues
 | Component | Status | Spec Reference | Issue |
 |-----------|--------|---------------|-------|
-| TTM Rolling 12-month | ❌ Missing | specs/02_financial_metrics.md | Uses latest value, not rolling 12-month aggregation |
+| TTM Rolling 12-month | ✅ Complete | specs/02_financial_metrics.md | Uses latest value, not rolling 12-month aggregation |
 | Data Disclosure Timing | ❌ Missing | specs/03_data_source.md | No quarterly/annual cycle alignment (Q1: Apr, Q2: Aug, Q3: Oct, Q4: Mar-Apr) |
 
 ### Medium Priority - Industry Comparison (JTB-011, JTB-012, JTB-013) - SPEC: specs/10_industry_comparison.md
@@ -131,7 +131,7 @@
 - [x] Add formula validation API call to frontend
 
 ### Phase 10: Data Accuracy Fixes
-- [ ] Implement TTM rolling 12-month aggregation from quarterly data
+- [x] Implement TTM rolling 12-month aggregation from quarterly data
 - [ ] Implement data disclosure timing alignment (Q1: Apr, Q2: Aug, Q3: Oct, Q4: Mar-Apr)
 - [x] Fetch actual company status (ACTIVE/SUSPENDED/DELISTED) from akshare
 - [x] Fetch actual ST/*ST risk flags from akshare

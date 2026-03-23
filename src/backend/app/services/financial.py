@@ -330,7 +330,8 @@ class FinancialService:
             if industry and company_industry and industry.lower() not in company_industry.lower():
                 continue
 
-            metrics = await self.get_company_metrics(code)
+            period = conditions[0].get("period", "annual") if conditions else "annual"
+            metrics = await self.get_company_metrics(code, period=period)
             company["metrics"] = metrics
 
             if profit_only:
