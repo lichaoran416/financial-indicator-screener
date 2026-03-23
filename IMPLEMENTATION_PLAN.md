@@ -1,6 +1,6 @@
 # Implementation Plan - A股财务指标分析应用
 
-## Status: PHASE 9 COMPLETE, PHASE 10-15 IN PROGRESS
+## Status: PHASE 9-10 COMPLETE, PHASE 11-15 IN PROGRESS
 
 ## CRITICAL CONSTRAINT: 只使用akshare提供的数据api, 不要使用其他数据api
 
@@ -58,7 +58,7 @@
 - **Issue**: Frontend expects `Record<string, number>` for metrics, but backend returns `{"financial_data": [...]}`
 - **Fix**: Changed backend to return metrics directly without wrapper
 
-### Bug 6: Frontend-backend type mismatches
+### Bug 6: Frontend-backend type mismatches ✅ FIXED
 - **Location**: `src/frontend/src/lib/types.ts` vs `src/backend/app/models/schemas.py`
 - **Issue**: Multiple enum value mismatches:
   - CompanyStatus: frontend=`normal`/`warning`/`danger` vs backend=`ACTIVE`/`SUSPENDED`/`DELISTED`
@@ -66,8 +66,8 @@
   - MetricInfo missing fields (unit, description)
   - SavedScreen missing fields (description, logic, updatedAt)
   - ScreenResponse field name mismatch (results vs companies)
-- **Fix**: Unify enum values and add missing fields
-- **Note**: API layer (api/screen.ts, api/company.ts) has correct types; lib/types.ts is legacy
+- **Fix**: Unify enum values and add missing fields in lib/types.ts
+- **Note**: API layer (api/screen.ts, api/company.ts) has correct types; lib/types.ts was legacy
 
 ### Bug 7: ROE shows negative when profit negative - should be N/A ✅ FIXED
 - **Location**: `src/backend/app/services/financial.py:248-249`
@@ -84,11 +84,10 @@
 - **Issue**: Screen cache key doesn't include `period` or `years` - causes wrong cache hits
 - **Fix**: Include period and years in cache key generation
 
-### Bug 10: Metrics field silently dropped in screening response
-- **Location**: `src/backend/app/api/v1/endpoints/screen.py`
-- **Issue**: `metrics` field added to company dict but dropped during Pydantic validation
-- **Fix**: Ensure metrics field is preserved in response schema
-- **Note**: Frontend uses separate /company/{code} endpoint for detailed metrics
+### Bug 10: Metrics field silently dropped in screening response ✅ FIXED
+- **Location**: `src/backend/app/api/v1/endpoints/screen.py` and `src/backend/app/models/schemas.py`
+- **Issue**: `metrics` field added to company dict but dropped during Pydantic validation because CompanyInfo didn't have metrics field
+- **Fix**: Added `metrics: dict` field to CompanyInfo model in schemas.py
 
 ---
 
@@ -162,7 +161,6 @@
 | Quarterly Period | ⚠️ Partial | Backend supports param but doesn't properly fetch quarterly data | specs/02_financial_metrics.md |
 | Multi-field Sorting | ⚠️ Partial | Only single sort; spec requires primary + secondary | specs/01_core_jobs.md (JTB-002) |
 | Negative Profit ROE | ⚠️ Partial | Shows negative instead of N/A | specs/09_edge_cases.md (JTB-008) |
-| formulaStore Export | ⚠️ Partial | formulaStore not exported from stores/index.ts | - |
 
 ---
 
@@ -185,13 +183,13 @@
 - [x] Fix Bug 3: Formula evaluator `ROE[2020:2024]` returns only last value in `formula_evaluator.py:111`
 - [x] Fix Bug 4: Implement peer comparison API with actual metrics in `company.py:152-158`
 - [x] Fix Bug 5: Align CompanyDetailPage data structure with backend response
-- [ ] Fix Bug 6: Unify frontend/backend types (CompanyStatus, RiskFlag, MetricInfo, SavedScreen, ScreenResponse)
+- [x] Fix Bug 6: Unify frontend/backend types (CompanyStatus, RiskFlag, MetricInfo, SavedScreen, ScreenResponse)
 - [x] Fix Bug 7: ROE shows N/A when profit negative in `financial.py`
 - [x] Fix Bug 8: Skip companies with None industry when filter set in `financial.py:330-331`
 - [x] Fix Bug 9: Include period/years in cache key in `financial.py:300`
-- [ ] Fix Bug 10: Preserve metrics field in screening response in `screen.py`
+- [x] Fix Bug 10: Preserve metrics field in screening response in `screen.py`
 - [x] Fix ROI formula bug: Use invested capital instead of total assets in `financial.py:451-465`
-- [ ] Export formulaStore from stores/index.ts
+- [x] Export formulaStore from stores/index.ts
 
 ### Phase 11: Industry Comparison (JTB-011, JTB-012, JTB-013)
 - [x] Implement peer comparison API endpoint with actual metrics calculation

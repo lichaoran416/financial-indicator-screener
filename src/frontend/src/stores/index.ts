@@ -7,4 +7,6 @@ export type { CompanyDetail, MetricInfo } from './companyStore';
 export { savedConditionsStore } from './savedConditionsStore';
 export type { SavedScreen } from './savedConditionsStore';
 
+export { formulaStore } from './formulaStore';
+
 export { uiStore } from './uiStore';

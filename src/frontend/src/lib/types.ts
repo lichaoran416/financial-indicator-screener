@@ -1,14 +1,14 @@
 export enum CompanyStatus {
-  Normal = 'normal',
-  Warning = 'warning',
-  Danger = 'danger',
+  ACTIVE = 'ACTIVE',
+  SUSPENDED = 'SUSPENDED',
+  DELISTED = 'DELISTED',
 }
 
 export enum RiskFlag {
-  None = 'none',
-  Low = 'low',
-  Medium = 'medium',
-  High = 'high',
+  NORMAL = 'NORMAL',
+  ST = 'ST',
+  STAR_ST = 'STAR_ST',
+  DELISTING_RISK = 'DELISTING_RISK',
 }
 
 export interface Condition {
@@ -25,17 +25,16 @@ export interface ScreenRequest {
 }
 
 export interface ScreenResponse {
-  results: CompanyResult[];
+  companies: CompanyResult[];
   total: number;
-  timestamp: string;
 }
 
 export interface CompanyResult {
   code: string;
   name: string;
-  metrics: Record<string, number>;
   status: CompanyStatus;
   riskFlag: RiskFlag;
+  industry?: string;
 }
 
 export interface CompanyDetailResponse {
@@ -69,11 +68,11 @@ export interface RiskAssessment {
 }
 
 export interface MetricInfo {
-  key: string;
+  id: string;
   name: string;
   category: string;
-  unit: string;
-  description: string;
+  unit?: string;
+  description?: string;
 }
 
 export interface MetricsListResponse {
@@ -84,11 +83,8 @@ export interface MetricsListResponse {
 export interface SavedScreen {
   id: string;
   name: string;
-  description?: string;
   conditions: Condition[];
-  logic: 'and' | 'or';
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
 }
 
 export interface CustomFormula {
