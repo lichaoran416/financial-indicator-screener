@@ -18,6 +18,7 @@ export interface ScreenRequest {
   limit?: number;
   page?: number;
   industry?: string;
+  exclude_industry?: string;
   include_suspended?: boolean;
   profit_only?: boolean;
   include_st?: boolean;

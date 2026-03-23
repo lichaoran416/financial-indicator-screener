@@ -1,9 +1,11 @@
-import { createSignal, createEffect, onMount, Show } from 'solid-js';
+import { createSignal, createEffect, onMount, Show, For } from 'solid-js';
 import { ConditionBuilder, defaultCondition } from '../components/condition';
 import { ResultsTable, Pagination, ExportButton } from '../components/results';
 import { LoadingSpinner, ErrorState, EmptyState, TimeoutState } from '../components/common';
 import { screenCompanies, Condition, CompanyInfo, SortOrder } from '../api/screen';
 import { getMetrics, MetricInfo } from '../api/metrics';
+import { getCSRCIndustries, getSWIndustries } from '../api/company';
+import type { IndustryClassification } from '../lib/types';
 
 const SCREEN_CONDITIONS_KEY = 'loaded_screen_conditions';
 
@@ -24,6 +26,10 @@ export default function ScreeningPage() {
   const [profitOnly, setProfitOnly] = createSignal(false);
   const [includeSt, setIncludeSt] = createSignal(true);
   const [requireCompleteData, setRequireCompleteData] = createSignal(false);
+  const [industry, setIndustry] = createSignal<string>('');
+  const [excludeIndustry, setExcludeIndustry] = createSignal<string>('');
+  const [industries, setIndustries] = createSignal<IndustryClassification[]>([]);
+  const [industryType, setIndustryType] = createSignal<'csrc' | 'sw1' | 'sw3'>('csrc');
 
   const loadMetrics = async () => {
     try {
@@ -32,6 +38,23 @@ export default function ScreeningPage() {
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('Failed to load metrics:', e);
+    }
+  };
+
+  const loadIndustries = async () => {
+    try {
+      let data: IndustryClassification[] = [];
+      if (industryType() === 'csrc') {
+        data = await getCSRCIndustries();
+      } else if (industryType() === 'sw1') {
+        data = await getSWIndustries(1);
+      } else {
+        data = await getSWIndustries(3);
+      }
+      setIndustries(data);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to load industries:', e);
     }
   };
 
@@ -51,6 +74,7 @@ export default function ScreeningPage() {
 
   onMount(() => {
     loadMetrics();
+    loadIndustries();
     loadSavedConditions();
   });
 
@@ -66,6 +90,8 @@ export default function ScreeningPage() {
         order: sortOrder(),
         limit: limit(),
         page: page(),
+        industry: industry() || undefined,
+        exclude_industry: excludeIndustry() || undefined,
         include_suspended: includeSuspended(),
         profit_only: profitOnly(),
         include_st: includeSt(),
@@ -89,7 +115,10 @@ export default function ScreeningPage() {
   };
 
   createEffect(() => {
-    if (conditions().length > 0) {
+    const conds = conditions();
+    const ind = industry();
+    const exclInd = excludeIndustry();
+    if (conds.length > 0 || ind || exclInd) {
       handleScreen();
     }
   });
@@ -185,6 +214,86 @@ export default function ScreeningPage() {
             />
             <span>Require complete data</span>
           </label>
+        </div>
+
+        <div style={{ display: 'flex', gap: '1.5rem', 'flex-wrap': 'wrap', 'align-items': 'center', 'margin-top': '1rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', 'align-items': 'center' }}>
+            <span style={{ 'font-size': '0.875rem' }}>Industry:</span>
+            <select
+              value={industryType()}
+              onChange={(e) => {
+                setIndustryType(e.currentTarget.value as 'csrc' | 'sw1' | 'sw3');
+                loadIndustries();
+              }}
+              style={{ padding: '0.25rem 0.5rem', 'border-radius': '4px', border: '1px solid #ccc' }}
+            >
+              <option value="csrc">证监会</option>
+              <option value="sw1">申万一级</option>
+              <option value="sw3">申万三级</option>
+            </select>
+            <select
+              value={industry()}
+              onChange={(e) => setIndustry(e.currentTarget.value)}
+              style={{ padding: '0.25rem 0.5rem', 'border-radius': '4px', border: '1px solid #ccc', 'min-width': '150px' }}
+            >
+              <option value="">-- Include Industry --</option>
+              <For each={industries()}>
+                {(ind) => <option value={ind.name}>{ind.name}</option>}
+              </For>
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem', 'align-items': 'center' }}>
+            <span style={{ 'font-size': '0.875rem' }}>Exclude:</span>
+            <select
+              value={excludeIndustry()}
+              onChange={(e) => setExcludeIndustry(e.currentTarget.value)}
+              style={{ padding: '0.25rem 0.5rem', 'border-radius': '4px', border: '1px solid #ccc', 'min-width': '150px' }}
+            >
+              <option value="">-- Exclude Industry --</option>
+              <For each={industries()}>
+                {(ind) => <option value={ind.name}>{ind.name}</option>}
+              </For>
+            </select>
+          </div>
+
+          <Show when={industry() || excludeIndustry()}>
+            <button
+              type="button"
+              onClick={() => {
+                setIndustry('');
+                setExcludeIndustry('');
+                handleScreen();
+              }}
+              style={{
+                padding: '0.25rem 0.5rem',
+                'border-radius': '4px',
+                border: '1px solid #ccc',
+                background: '#f5f5f5',
+                'font-size': '0.75rem',
+                cursor: 'pointer',
+              }}
+            >
+              Clear Industry Filter
+            </button>
+          </Show>
+
+          <button
+            type="button"
+            onClick={() => {
+              loadIndustries();
+            }}
+            style={{
+              padding: '0.25rem 0.5rem',
+              'border-radius': '4px',
+              border: '1px solid #ccc',
+              background: '#f5f5f5',
+              'font-size': '0.75rem',
+              cursor: 'pointer',
+            }}
+          >
+            Refresh Industries
+          </button>
         </div>
       </section>
 

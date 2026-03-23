@@ -44,7 +44,10 @@ class ScreenRequest(BaseModel):
     order: SortOrder = Field(default=SortOrder.DESC, description="Sort order")
     limit: int = Field(default=50, ge=1, le=500, description="Results limit")
     page: int = Field(default=1, ge=1, description="Page number")
-    industry: Optional[str] = Field(default=None, description="Industry filter")
+    industry: Optional[str] = Field(default=None, description="Industry filter (partial match)")
+    exclude_industry: Optional[str] = Field(
+        default=None, description="Industry to exclude (partial match)"
+    )
     include_suspended: bool = Field(
         default=False, description="Include suspended/delisted companies (JTB-007)"
     )

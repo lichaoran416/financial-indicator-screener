@@ -118,9 +118,9 @@
 | RadarChart Component | ✅ Complete | Radar/spider chart for multi-metric comparison |
 | PeerComparison Component | ✅ Complete | Displays peer metrics table with percentile |
 | Industry Type Selector | ✅ Complete | CSRC/SW1/SW3 selector in PeerComparison UI |
+| Industry Filter in Frontend | ✅ Complete | Include industry dropdown with CSRC/SW1/SW3 selector |
+| Exclude Industry Option | ✅ Complete | Backend supports exclude_industry; UI dropdown added |
 | Multi-industry Selection UI | ❌ Missing | No multi-select for industry filter |
-| Exclude Industry Option | ❌ Missing | No exclude industry feature |
-| Industry Filter in Frontend | ❌ Missing | Backend supports but UI doesn't expose |
 
 ### Phase 12: Visualization (JTB-014, JTB-015, JTB-016)
 | Component | Status | Notes |
@@ -198,9 +198,9 @@
 - [x] Create industry benchmark calculation (avg, median, percentile)
 - [x] Create RadarChart component
 - [x] Create PeerComparison component with industry type selector
+- [x] Expose industry filter in frontend (include + exclude dropdowns)
+- [x] Add exclude industry option to screening UI
 - [ ] Add multi-industry selection to screening UI
-- [ ] Add exclude industry option to screening UI
-- [ ] Expose industry filter in frontend (currently backend-only)
 
 ### Phase 12: Visualization (JTB-014, JTB-015, JTB-016)
 - [ ] Create TreeMap component for result distribution

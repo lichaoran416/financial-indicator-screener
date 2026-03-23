@@ -301,6 +301,7 @@ class FinancialService:
         limit: int = 50,
         page: int = 1,
         industry: Optional[str] = None,
+        exclude_industry: Optional[str] = None,
         include_suspended: bool = False,
         profit_only: bool = False,
         include_st: bool = True,
@@ -308,7 +309,7 @@ class FinancialService:
     ) -> dict[str, Any]:
         period = conditions[0].get("period", "annual") if conditions else "annual"
         years = conditions[0].get("years", 5) if conditions else 5
-        cache_key = f"screen:{hash(str(conditions))}:{sort_by}:{order}:{limit}:{page}:{industry}:{include_suspended}:{profit_only}:{include_st}:{require_complete_data}:{period}:{years}"
+        cache_key = f"screen:{hash(str(conditions))}:{sort_by}:{order}:{limit}:{page}:{industry}:{exclude_industry}:{include_suspended}:{profit_only}:{include_st}:{require_complete_data}:{period}:{years}"
         cached = await redis_manager.get_json(cache_key)
         if cached:
             return cached
@@ -340,6 +341,13 @@ class FinancialService:
 
             if industry:
                 if company_industry is None or industry.lower() not in company_industry.lower():
+                    continue
+
+            if exclude_industry:
+                if (
+                    company_industry is not None
+                    and exclude_industry.lower() in company_industry.lower()
+                ):
                     continue
 
             period = conditions[0].get("period", "annual") if conditions else "annual"

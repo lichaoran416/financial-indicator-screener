@@ -22,6 +22,7 @@ SAVED_SCREENS_KEY = "saved_screens"
 async def get_companies_from_financial_service(
     conditions: List[Condition],
     industry: str | None = None,
+    exclude_industry: str | None = None,
     sort_by: str | None = None,
     order: str = "desc",
     limit: int = 50,
@@ -37,6 +38,7 @@ async def get_companies_from_financial_service(
     result = await financial_service.screen_companies(
         conditions=conditions_dicts,
         industry=industry,
+        exclude_industry=exclude_industry,
         sort_by=sort_by,
         order=order,
         limit=limit,
@@ -60,6 +62,7 @@ async def screen_companies_endpoint(request: ScreenRequest) -> ScreenResponse:
         companies, total = await get_companies_from_financial_service(
             conditions=request.conditions,
             industry=request.industry,
+            exclude_industry=request.exclude_industry,
             sort_by=request.sort_by,
             order=request.order.value,
             limit=request.limit,
