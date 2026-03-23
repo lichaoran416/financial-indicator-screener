@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { screeningStore } from '../../src/frontend/src/stores/screeningStore';
-import { companyStore } from '../../src/frontend/src/stores/companyStore';
-import { savedConditionsStore } from '../../src/frontend/src/stores/savedConditionsStore';
+import { screeningStore } from '../src/stores/screeningStore';
+import { companyStore } from '../src/stores/companyStore';
+import { savedConditionsStore } from '../src/stores/savedConditionsStore';
 
 describe('screeningStore', () => {
   beforeEach(() => {

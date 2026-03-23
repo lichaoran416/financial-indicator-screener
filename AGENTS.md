@@ -22,14 +22,13 @@ redis-server
 
 ## Validation
 
-- Tests: `pytest tests/backend/` (backend) / `npm test` (frontend) [Note: frontend tests have path resolution issues on Windows]
+- Tests: `pytest src/backend/tests/` (backend) / `npm test` (frontend)
 - Typecheck: `mypy src/backend/` (backend) / `npm run typecheck` (frontend)
 - Lint: `ruff check src/backend/` (backend) / `npm run lint` (frontend)
 
 ## Known Issues
 
 - eslint-plugin-solid latest version is 0.14.5, not 8.x - ensure package.json uses correct version
-- Frontend vitest tests are in `tests/frontend/` but path resolution on Windows requires careful configuration
 - Python dependencies require pip which may not be available on all systems
 
 ## Operational Notes
@@ -48,18 +47,16 @@ src/
 │   ├── components/       # UI components
 │   ├── pages/            # Route pages
 │   ├── stores/           # State management
-│   └── api/              # API client
+│   ├── api/              # API client
+│   └── tests/            # Frontend tests
 │
 └── backend/              # FastAPI backend
     ├── api/v1/           # API endpoints
     ├── core/             # Core config
     ├── models/           # Data models
     ├── services/         # Business logic
-    └── utils/            # Utilities
-
-tests/                     # Test files
-├── frontend/
-└── backend/
+    ├── utils/            # Utilities
+    └── tests/            # Backend tests
 ```
 
 ### API Endpoints

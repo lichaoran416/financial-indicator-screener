@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatNumber, formatPercent, formatCurrency } from '../../src/frontend/src/lib/formatters';
+import { formatNumber, formatPercent, formatCurrency } from '../src/lib/formatters';
 
 describe('formatNumber', () => {
   it('should format number with default 2 decimals', () => {

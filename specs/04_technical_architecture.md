@@ -44,10 +44,12 @@ stock-analysis-1/
 │       ├── services/                # 业务逻辑
 │       └── utils/                   # 工具函数
 │
-├── tests/                           # 共享测试目录
-│   ├── frontend/                    # 前端测试
-│   └── backend/                     # 后端测试
-│       └── conftest.py
+├── src/
+│   ├── frontend/
+│   │   └── tests/                   # 前端测试
+│   └── backend/
+│       └── tests/                   # 后端测试
+│           └── conftest.py
 │
 ├── specs/                           # 规格文档
 ├── package.json                     # 前端依赖
@@ -168,13 +170,13 @@ services:
 
 | 测试类型 | 覆盖范围 | 命令 |
 |---------|---------|------|
-| 单元测试 | services/utils模块 | `pytest backend/tests/unit/` |
-| 集成测试 | API端点 | `pytest backend/tests/integration/` |
-| 覆盖率报告 | >80%目标 | `pytest --cov=backend/src` |
+| 单元测试 | services/utils模块 | `pytest src/backend/tests/unit/` |
+| 集成测试 | API端点 | `pytest src/backend/tests/integration/` |
+| 覆盖率报告 | >80%目标 | `pytest --cov=src/backend` |
 
 **测试文件结构**
 ```
-tests/backend/
+src/backend/tests/
 ├── conftest.py              # pytest fixtures
 ├── unit/
 │   ├── test_services/       # 业务逻辑测试
@@ -193,13 +195,13 @@ tests/backend/
 
 | 测试类型 | 覆盖范围 | 命令 |
 |---------|---------|------|
-| 单元测试 | components/stores | `vitest src/` |
-| 组件测试 | UI组件渲染 | `vitest src/components` |
+| 单元测试 | components/stores | `vitest src/frontend/` |
+| 组件测试 | UI组件渲染 | `vitest src/frontend/components` |
 | E2E测试 | 完整流程 | `playwright test` |
 
 **测试文件结构**
 ```
-tests/frontend/
+src/frontend/tests/
 ├── components/              # 组件测试
 ├── stores/                  # 状态测试
 └── utils/                   # 工具函数测试
@@ -222,7 +224,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run backend tests
-        run: pytest tests/backend/ --cov
+        run: pytest src/backend/tests/ --cov
   frontend:
     runs-on: ubuntu-latest
     steps:

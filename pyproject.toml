@@ -16,8 +16,8 @@ dependencies = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = ["."]
+testpaths = ["src/backend/tests"]
+pythonpath = ["src/backend"]
 
 [tool.mypy]
 python_version = "3.10"

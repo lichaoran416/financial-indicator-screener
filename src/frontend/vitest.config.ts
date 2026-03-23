@@ -1,8 +1,12 @@
 import { defineConfig } from 'vitest/config';
+import { resolve } from 'path';
+
+const testsRoot = resolve(__dirname, './tests').replace(/\\/g, '/');
 
 export default defineConfig({
   test: {
-    include: ['/mnt/d/lcrworkspace/projects/stock-analysis-1/tests/**/*.test.{ts,tsx}'],
+    include: [`${testsRoot}/**/*.test.{ts,tsx}`],
     environment: 'jsdom',
+    setupFiles: [`${testsRoot}/setup.ts`],
   },
 });

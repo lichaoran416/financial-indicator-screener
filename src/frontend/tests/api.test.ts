@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screenCompanies, saveScreen, getSavedScreens } from '../../src/frontend/src/api/screen';
-import { getCompany } from '../../src/frontend/src/api/company';
-import { getMetrics } from '../../src/frontend/src/api/metrics';
+import { screenCompanies, saveScreen, getSavedScreens } from '../src/api/screen';
+import { getCompany } from '../src/api/company';
+import { getMetrics } from '../src/api/metrics';
 
 describe('screen API', () => {
   describe('screenCompanies', () => {
