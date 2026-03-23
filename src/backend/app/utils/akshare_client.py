@@ -110,11 +110,13 @@ class AkshareClient:
                 code = str(row.get("代码", ""))
                 name = str(row.get("名称", ""))
                 industry = str(row.get("行业", "")) if pd.notna(row.get("行业")) else None
+                listing_status = str(row.get("上市状态", "上市")) if pd.notna(row.get("上市状态")) else "上市"
                 result.append(
                     {
                         "code": code,
                         "name": name,
                         "industry": industry,
+                        "listing_status": listing_status,
                     }
                 )
             return result

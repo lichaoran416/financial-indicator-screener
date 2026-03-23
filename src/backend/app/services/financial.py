@@ -56,6 +56,23 @@ class FinancialService:
         },
     }
 
+    def _determine_status(self, listing_status: str) -> str:
+        if listing_status in ("暂停上市", "SUSPENDED"):
+            return CompanyStatus.SUSPENDED.value
+        elif listing_status in ("终止上市", "DELISTED"):
+            return CompanyStatus.DELISTED.value
+        return CompanyStatus.ACTIVE.value
+
+    def _determine_risk_flag(self, name: str) -> str:
+        name_upper = name.upper()
+        if "*ST" in name_upper or "S*ST" in name_upper or "S ST" in name_upper:
+            return RiskFlag.STAR_ST.value
+        elif "ST" in name_upper or "SST" in name_upper:
+            return RiskFlag.ST.value
+        elif "退" in name or "DELIST" in name_upper:
+            return RiskFlag.DELISTING_RISK.value
+        return RiskFlag.NORMAL.value
+
     async def get_company_list(self) -> list[dict[str, Any]]:
         cache_key = "company:list:all"
         cached = await redis_manager.get_json(cache_key)
@@ -65,12 +82,17 @@ class FinancialService:
         stocks = await akshare_client.get_stock_list()
         result = []
         for stock in stocks:
+            code = stock.get("code", stock.get("证券代码", ""))
+            name = stock.get("name", stock.get("证券名称", ""))
+            listing_status = stock.get("listing_status", "上市")
+            status = self._determine_status(listing_status)
+            risk_flag = self._determine_risk_flag(name)
             result.append(
                 {
-                    "code": stock.get("code", stock.get("证券代码", "")),
-                    "name": stock.get("name", stock.get("证券名称", "")),
-                    "status": CompanyStatus.ACTIVE.value,
-                    "risk_flag": RiskFlag.NORMAL.value,
+                    "code": code,
+                    "name": name,
+                    "status": status,
+                    "risk_flag": risk_flag,
                     "industry": stock.get("industry", None),
                 }
             )

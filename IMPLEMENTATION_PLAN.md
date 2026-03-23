@@ -8,8 +8,8 @@
 | Backend Core (main.py, config.py, redis.py) | ✅ Complete | |
 | Backend Pydantic Models | ✅ Complete | |
 | Backend API Endpoints (screen, company, metrics, cache) | ✅ Complete | |
-| Backend Financial Service | ✅ Complete | |
-| Backend Akshare Client | ✅ Complete | |
+| Backend Financial Service | ✅ Complete | Uses listing_status for ACTIVE/SUSPENDED/DELISTED; ST/*ST detection from stock name |
+| Backend Akshare Client | ✅ Complete | get_stock_list() extracts listing_status from stock_zh_a_spot_em |
 | Frontend App.tsx with Routing | ✅ Complete | Lazy loading implemented |
 | Frontend API Client | ✅ Complete | |
 | Frontend Stores | ✅ Complete | |
@@ -52,7 +52,6 @@
 |-----------|--------|---------------|-------|
 | TTM Rolling 12-month | ❌ Missing | specs/02_financial_metrics.md | Uses latest value, not rolling 12-month aggregation |
 | Data Disclosure Timing | ❌ Missing | specs/03_data_source.md | No quarterly/annual cycle alignment (Q1: Apr, Q2: Aug, Q3: Oct, Q4: Mar-Apr) |
-| Actual ST/Suspended Status | ⚠️ Incomplete | specs/09_edge_cases.md | Status hardcoded to ACTIVE/NORMAL - not fetched from akshare |
 
 ### Medium Priority - Industry Comparison (JTB-011, JTB-012, JTB-013) - SPEC: specs/10_industry_comparison.md
 | Component | Status | Notes |
@@ -134,8 +133,8 @@
 ### Phase 10: Data Accuracy Fixes
 - [ ] Implement TTM rolling 12-month aggregation from quarterly data
 - [ ] Implement data disclosure timing alignment (Q1: Apr, Q2: Aug, Q3: Oct, Q4: Mar-Apr)
-- [ ] Fetch actual company status (ACTIVE/SUSPENDED/DELISTED) from akshare
-- [ ] Fetch actual ST/*ST risk flags from akshare
+- [x] Fetch actual company status (ACTIVE/SUSPENDED/DELISTED) from akshare
+- [x] Fetch actual ST/*ST risk flags from akshare
 
 ### Phase 11: Industry Comparison (JTB-011, JTB-012, JTB-013)
 - [ ] Add CSRC industry classification API (stock_info_csrc_main)
