@@ -229,15 +229,15 @@ requirements.txt                  # Backend dependencies at root
   - Loading/Error/Timeout states
 
 ### 7.2 CompanyDetailPage (/company/:code)
-- [ ] `src/frontend/src/pages/CompanyDetailPage.tsx`
-- [ ] Financial charts integration
-- [ ] Metric trend display
+- [x] `src/frontend/src/pages/CompanyDetailPage.tsx`
+- [x] Financial charts integration
+- [x] Metric trend display
 - [ ] Peer comparison access
 
 ### 7.3 HistoryPage (/history)
-- [ ] `src/frontend/src/pages/HistoryPage.tsx`
-- [ ] Saved screening conditions management
-- [ ] Load/delete saved screens
+- [x] `src/frontend/src/pages/HistoryPage.tsx`
+- [x] Saved screening conditions management
+- [x] Load/delete saved screens (delete UI implemented, API not available)
 
 ---
 

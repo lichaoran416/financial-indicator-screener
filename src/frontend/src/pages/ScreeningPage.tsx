@@ -5,6 +5,8 @@ import { LoadingSpinner, ErrorState, EmptyState, TimeoutState } from '../compone
 import { screenCompanies, Condition, CompanyInfo, SortOrder } from '../api/screen';
 import { getMetrics, MetricInfo } from '../api/metrics';
 
+const SCREEN_CONDITIONS_KEY = 'loaded_screen_conditions';
+
 export default function ScreeningPage() {
   const [conditions, setConditions] = createSignal<Condition[]>([]);
   const [logic, setLogic] = createSignal<'and' | 'or'>('and');
@@ -29,8 +31,23 @@ export default function ScreeningPage() {
     }
   };
 
+  const loadSavedConditions = () => {
+    try {
+      const saved = window.localStorage.getItem(SCREEN_CONDITIONS_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as Condition[];
+        setConditions(parsed);
+        window.localStorage.removeItem(SCREEN_CONDITIONS_KEY);
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to load saved conditions:', e);
+    }
+  };
+
   onMount(() => {
     loadMetrics();
+    loadSavedConditions();
   });
 
   const handleScreen = async () => {
