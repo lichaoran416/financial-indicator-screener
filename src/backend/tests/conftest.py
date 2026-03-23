@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 from app.core.redis import RedisManager
 
 
@@ -13,7 +13,7 @@ def mock_redis():
     mock_client.exists = AsyncMock(return_value=False)
     mock_client.close = AsyncMock()
 
-    with pytest.patch.object(RedisManager, "_client", mock_client):
+    with patch.object(RedisManager, "_client", mock_client):
         yield mock_client
 
 
@@ -43,7 +43,7 @@ def sample_financial_data():
             "营业总收入": [100000, 95000],
             "营业收入": [100000, 95000],
             "营业成本": [55000, 52000],
-            "净利润": [15000, 14000],
+            "净利润": [15000, 14500],
             "归属母公司净利润": [14500, 13500],
         },
         "balance": {

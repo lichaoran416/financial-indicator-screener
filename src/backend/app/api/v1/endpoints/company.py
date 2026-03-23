@@ -38,7 +38,7 @@ async def get_company_info(stock_code: str) -> dict[str, Any]:
         metrics = ak.stock_financial_analysis_indicator(symbol=stock_code)
 
         return {"info": info_dict, "metrics": metrics.to_dict(orient="records")}
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=404, detail=f"Company {stock_code} not found")
 
 
@@ -71,7 +71,7 @@ async def get_company(
         industry=info.get("行业"),
         status=company_status,
         risk_flag=risk_flag,
-        metrics={"financial_data": metrics},
+        metrics=metrics,
     )
 
     await redis_manager.set_json(cache_key, company_detail.model_dump(), CACHE_TTL)
@@ -144,16 +144,60 @@ async def compare_with_peers(request: PeerComparisonRequest) -> PeerComparisonRe
     if cached_data:
         return PeerComparisonResponse(**cached_data)
 
+    from app.services.financial import financial_service
+
     company_info = await akshare_client.get_company_info(request.code)
     industry = company_info.get("行业") or company_info.get("industry", "Unknown")
 
     peer_codes = await akshare_client.get_industry_peers(request.code, request.industry_type)
 
+    company_metrics = await financial_service.get_company_metrics(
+        request.code, period="annual", years=5
+    )
+
+    peer_metrics_list: list[dict[str, Any]] = []
+    for peer_code in peer_codes[:20]:
+        try:
+            peer_metric = await financial_service.get_company_metrics(
+                peer_code, period="annual", years=5
+            )
+            peer_metrics_list.append(peer_metric)
+        except Exception:
+            continue
+
     metrics_result = []
     for metric in request.metrics:
+        metric_value = company_metrics.get(metric)
+
+        peer_values = []
+        for pm in peer_metrics_list:
+            val = pm.get(metric)
+            if val is not None and isinstance(val, (int, float)):
+                peer_values.append(float(val))
+
+        industry_avg = sum(peer_values) / len(peer_values) if peer_values else None
+        sorted_peer_values = sorted(peer_values)
+        if sorted_peer_values:
+            mid = len(sorted_peer_values) // 2
+            if len(sorted_peer_values) % 2 == 0:
+                industry_median = (sorted_peer_values[mid - 1] + sorted_peer_values[mid]) / 2
+            else:
+                industry_median = sorted_peer_values[mid]
+        else:
+            industry_median = None
+
+        percentile = None
+        if metric_value is not None and peer_values:
+            lower_count = sum(1 for v in peer_values if v < metric_value)
+            percentile = (lower_count / len(peer_values)) * 100
+
         metrics_result.append(
             PeerMetric(
-                metric=metric, value=None, industry_avg=None, industry_median=None, percentile=None
+                metric=metric,
+                value=metric_value,
+                industry_avg=industry_avg,
+                industry_median=industry_median,
+                percentile=percentile,
             )
         )
 

@@ -1,7 +1,7 @@
 from typing import Any, Optional
 from app.utils.akshare_client import akshare_client
 from app.core.redis import redis_manager
-from app.models.schemas import Period, SortOrder, CompanyInfo, CompanyStatus, RiskFlag
+from app.models.schemas import Period, CompanyStatus, RiskFlag
 
 
 CACHE_TTL = 86400
@@ -110,15 +110,21 @@ class FinancialService:
         metrics = {}
         if indicator_data and isinstance(indicator_data, dict):
             if period == Period.TTM.value:
-                metrics["roe"] = self._get_ttm_sum(
-                    indicator_data, ["roe"], 4
-                ) if "roe" in indicator_data else None
-                metrics["roi"] = self._get_ttm_sum(
-                    indicator_data, ["roic", "roi"], 4
-                ) if "roic" in indicator_data or "roi" in indicator_data else None
-                metrics["gross_margin"] = self._get_ttm_sum(
-                    indicator_data, ["gross_profit_margin"], 4
-                ) if "gross_profit_margin" in indicator_data else None
+                metrics["roe"] = (
+                    self._get_ttm_sum(indicator_data, ["roe"], 4)
+                    if "roe" in indicator_data
+                    else None
+                )
+                metrics["roi"] = (
+                    self._get_ttm_sum(indicator_data, ["roic", "roi"], 4)
+                    if "roic" in indicator_data or "roi" in indicator_data
+                    else None
+                )
+                metrics["gross_margin"] = (
+                    self._get_ttm_sum(indicator_data, ["gross_profit_margin"], 4)
+                    if "gross_profit_margin" in indicator_data
+                    else None
+                )
             else:
                 if "roe" in indicator_data:
                     metrics["roe"] = self._safe_get_last_values(indicator_data.get("roe", []))
@@ -173,8 +179,7 @@ class FinancialService:
                 if isinstance(values, list) and len(values) > 0:
                     if col_name in key:
                         valid_values = [
-                            float(v) for v in values[:periods]
-                            if v is not None and str(v) != "nan"
+                            float(v) for v in values[-periods:] if v is not None and str(v) != "nan"
                         ]
                         if len(valid_values) >= periods:
                             return sum(valid_values)
@@ -204,8 +209,12 @@ class FinancialService:
                 revenue = self._find_column_value(income, ["营业总收入", "营业收入", "营收"])
                 total_cost = self._find_column_value(income, ["营业总成本", "营业成本", "成本"])
                 net_profit = self._find_column_value(income, ["净利润", "归属母公司净利润"])
-                previous_net_profit = self._find_previous_value(income, ["净利润", "归属母公司净利润"])
-                previous_revenue = self._find_previous_value(income, ["营业总收入", "营业收入", "营收"])
+                previous_net_profit = self._find_previous_value(
+                    income, ["净利润", "归属母公司净利润"]
+                )
+                previous_revenue = self._find_previous_value(
+                    income, ["营业总收入", "营业收入", "营收"]
+                )
 
             if revenue and total_cost and revenue > 0:
                 metrics["gross_margin"] = (revenue - total_cost) / revenue * 100
@@ -236,7 +245,7 @@ class FinancialService:
             if current_assets and current_liabilities and current_liabilities > 0:
                 metrics["current_ratio"] = current_assets / current_liabilities
 
-            if net_profit and total_equity and total_equity > 0:
+            if net_profit and net_profit > 0 and total_equity and total_equity > 0:
                 metrics["roe"] = net_profit / total_equity * 100
 
             if total_equity:
@@ -297,7 +306,9 @@ class FinancialService:
         include_st: bool = True,
         require_complete_data: bool = False,
     ) -> dict[str, Any]:
-        cache_key = f"screen:{hash(str(conditions))}:{sort_by}:{order}:{limit}:{page}:{industry}:{include_suspended}:{profit_only}:{include_st}:{require_complete_data}"
+        period = conditions[0].get("period", "annual") if conditions else "annual"
+        years = conditions[0].get("years", 5) if conditions else 5
+        cache_key = f"screen:{hash(str(conditions))}:{sort_by}:{order}:{limit}:{page}:{industry}:{include_suspended}:{profit_only}:{include_st}:{require_complete_data}:{period}:{years}"
         cached = await redis_manager.get_json(cache_key)
         if cached:
             return cached
@@ -327,11 +338,13 @@ class FinancialService:
             ):
                 continue
 
-            if industry and company_industry and industry.lower() not in company_industry.lower():
-                continue
+            if industry:
+                if company_industry is None or industry.lower() not in company_industry.lower():
+                    continue
 
             period = conditions[0].get("period", "annual") if conditions else "annual"
-            metrics = await self.get_company_metrics(code, period=period)
+            years = conditions[0].get("years", 5) if conditions else 5
+            metrics = await self.get_company_metrics(code, period=period, years=years)
             company["metrics"] = metrics
 
             if profit_only:
@@ -440,7 +453,13 @@ class FinancialService:
         if not income:
             return None
         net_profit = self._find_column_value(income, ["净利润"])
-        total_investment = self._find_column_value(financial_data.get("balance", {}), ["资产合计"])
+        balance = financial_data.get("balance", {})
+        total_assets = self._find_column_value(balance, ["资产合计"])
+        current_liabilities = self._find_column_value(balance, ["流动负债合计", "流动负债"])
+        if total_assets and current_liabilities:
+            total_investment = total_assets - current_liabilities
+        else:
+            total_investment = total_assets
         if net_profit and total_investment and total_investment > 0:
             return net_profit / total_investment * 100
         return None
