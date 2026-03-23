@@ -1,6 +1,6 @@
 # Implementation Plan - A股财务指标分析应用
 
-## Status: PHASE 1-8 COMPLETE, PHASE 9-14 PENDING
+## Status: PHASE 1-9 COMPLETE, PHASE 10-14 PENDING
 
 ## Completed Implementation (Verified via Code Analysis)
 | Component | Status | Notes |
@@ -20,66 +20,83 @@
 | Frontend CompanyDetailPage | ✅ Complete | Basic bar chart only |
 | Frontend HistoryPage | ✅ Complete | |
 | Frontend Lib (types, formatters) | ✅ Complete | |
+| Custom Formula Engine (lexer, parser, evaluator) | ✅ Complete | Phase 9 - JTB-005, JTB-006 |
+| Formula API Endpoints | ✅ Complete | validate, evaluate, save, delete |
+| FormulaEditor UI Component | ✅ Complete | With syntax highlighting and saved formulas |
+
+---
 
 ## NOT YET IMPLEMENTED (Confirmed Missing via Code Search)
 
-### Critical - Formula Engine (JTB-005, JTB-006)
-| Component | Status | Spec Reference |
-|-----------|--------|----------------|
-| Formula Lexer | ❌ Missing | specs/08_custom_formula.md |
-| Formula Parser | ❌ Missing | specs/08_custom_formula.md |
-| Formula Evaluator | ❌ Missing | specs/08_custom_formula.md |
-| Formula Service | ❌ Missing | specs/08_custom_formula.md |
-| Formula API Endpoints | ❌ Missing | specs/08_custom_formula.md |
-| FormulaEditor UI Component | ❌ Missing | specs/08_custom_formula.md |
+### Critical - Custom Formula Engine (JTB-005, JTB-006) - SPEC: specs/08_custom_formula.md
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Formula Lexer | ✅ Complete | Tokenizes formula strings |
+| Formula Parser | ✅ Complete | Parses tokens into AST |
+| Formula Evaluator | ✅ Complete | Evaluates AST against financial data |
+| Formula Service | ✅ Complete | Business logic for formula operations |
+| Formula API Endpoints | ✅ Complete | validate, evaluate, save, delete |
+| FormulaEditor UI Component | ✅ Complete | With syntax validation and saved formulas |
+| Custom Formula Storage | ✅ Complete | Redis-backed storage |
 
-### High Priority - Data Accuracy
-| Component | Status | Spec Reference |
-|-----------|--------|----------------|
-| TTM Rolling 12-month Calculation | ❌ Missing | specs/02_financial_metrics.md (TTM should be rolling, not latest) |
-| Data Disclosure Timing Alignment | ❌ Missing | specs/03_data_source.md (Q1: Apr, Q2: Aug, Q3: Oct, Q4: Mar-Apr) |
+**Requirements per spec:**
+- Operators: +, -, *, /, ()
+- Functions: AVG(), SUM(), MIN(), MAX(), STD()
+- Metric references: `净利润 / 总资产`
+- Time series: `ROE[2023]`, `AVG(ROE[2020:2024])`
+- Syntax validation & error messages
+- Formula naming & saving
 
-### Medium Priority - Industry Comparison (JTB-011, JTB-012)
-| Component | Status | Spec Reference |
-|-----------|--------|----------------|
-| CSRC Classification API | ❌ Missing | specs/10_industry_comparison.md |
-| SW (申万) Classification API | ❌ Missing | specs/10_industry_comparison.md |
-| Peer Comparison API | ❌ Missing | specs/10_industry_comparison.md |
-| Radar Chart Component | ❌ Missing | specs/10_industry_comparison.md |
-| Multi-industry Selection | ❌ Missing | specs/10_industry_comparison.md |
-| Exclude Industry Option | ❌ Missing | specs/10_industry_comparison.md |
+### High Priority - Data Accuracy Issues
+| Component | Status | Spec Reference | Issue |
+|-----------|--------|---------------|-------|
+| TTM Rolling 12-month | ❌ Missing | specs/02_financial_metrics.md | Uses latest value, not rolling 12-month aggregation |
+| Data Disclosure Timing | ❌ Missing | specs/03_data_source.md | No quarterly/annual cycle alignment (Q1: Apr, Q2: Aug, Q3: Oct, Q4: Mar-Apr) |
+| Actual ST/Suspended Status | ⚠️ Incomplete | specs/09_edge_cases.md | Status hardcoded to ACTIVE/NORMAL - not fetched from akshare |
 
-### Medium Priority - Visualization (JTB-015, JTB-016)
-| Component | Status | Spec Reference |
-|-----------|--------|----------------|
-| TreeMap Component | ❌ Missing | specs/11_visualization.md |
-| TrendComparisonChart | ❌ Missing | specs/11_visualization.md |
-| ConditionTree | ❌ Missing | specs/11_visualization.md |
-| ValueSlider | ❌ Missing | specs/11_visualization.md |
-| IndustryHeatmap | ❌ Missing | specs/11_visualization.md |
+### Medium Priority - Industry Comparison (JTB-011, JTB-012, JTB-013) - SPEC: specs/10_industry_comparison.md
+| Component | Status | Notes |
+|-----------|--------|-------|
+| CSRC Classification API | ❌ Missing | No证监会 industry classification |
+| SW (申万) Classification API | ❌ Missing | No 申万 3-level classification (28/104/227) |
+| Peer Comparison API | ❌ Missing | No `/company/{code}/comparison` endpoint |
+| Radar Chart Component | ❌ Missing | No radar/spider chart |
+| Industry Benchmark Calculation | ❌ Missing | No industry avg/median |
+| Percentile Ranking | ❌ Missing | No company percentile in industry |
+| Multi-industry Selection UI | ❌ Missing | No multi-select for industry filter |
+| Exclude Industry Option | ❌ Missing | No exclude industry feature |
+| Industry Filter in Frontend | ⚠️ Partial | Backend supports `industry` param but UI doesn't expose it |
 
-### Lower Priority - UX Enhancements
-| Component | Status | Spec Reference |
-|-----------|--------|----------------|
-| Virtual Scrolling | ❌ Missing | specs/07_ux.md |
-| Debounced Inputs (300ms) | ❌ Missing | specs/07_ux.md |
-| Memoization (createMemo) | ❌ Missing | specs/07_ux.md |
+### Medium Priority - Visualization (JTB-014, JTB-015, JTB-016) - SPEC: specs/11_visualization.md
+| Component | Status | Notes |
+|-----------|--------|-------|
+| TreeMap Component | ❌ Missing | For screening result distribution |
+| TrendComparisonChart | ❌ Missing | Up to 10 companies, dual Y-axis, time zoom |
+| ConditionTree (visualization) | ❌ Missing | Graphical condition structure diagram |
+| ValueSlider | ❌ Missing | Range slider with histogram |
+| IndustryHeatmap | ❌ Missing | Industry distribution heatmap |
+| Time-Series Line Chart | ❌ Missing | Historical metric trends |
+| Multi-Company Comparison | ❌ Missing | Cannot compare >1 company |
+
+### Lower Priority - UX Enhancements - SPEC: specs/07_ux.md
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Virtual Scrolling | ❌ Missing | For large result sets |
+| Debounced Inputs (300ms) | ❌ Missing | Condition input debounce |
+| Memoization (createMemo) | ❌ Missing | Performance optimization |
+
+---
 
 ## PARTIALLY IMPLEMENTED (Needs Enhancement)
 | Component | Status | Gap | Spec Reference |
 |-----------|--------|-----|----------------|
-| Multi-field Sorting | ⚠️ Partial | Only single sort; spec requires primary + secondary | specs/01_core_jobs.md |
+| Multi-field Sorting | ⚠️ Partial | Only single sort; spec requires primary + secondary | specs/01_core_jobs.md (JTB-002) |
 | TTM Calculation | ⚠️ Partial | Uses latest value, not rolling 12-month | specs/02_financial_metrics.md |
-| Risk Warning Messages | ⚠️ Partial | Flags displayed but no warning text | specs/09_edge_cases.md |
-| Negative Profit ROE | ⚠️ Partial | Shows negative values, should show N/A | specs/09_edge_cases.md |
-| Missing Year Marking | ⚠️ Partial | N/A displayed but years not marked | specs/09_edge_cases.md |
-
----
-
-## Project Overview
-- **Goal**: A股上市公司财务指标分析工具，支持自定义公式筛选、行业对比、数据可视化
-- **Tech Stack**: Solid.js + FastAPI + Redis + akshare
-- **Specs Location**: `specs/00_overview.md` through `specs/12_future.md`
+| Risk Warning Messages | ⚠️ Partial | Flags displayed but no warning text | specs/09_edge_cases.md (JTB-009) |
+| Negative Profit ROE | ⚠️ Partial | Shows negative values, should show N/A | specs/09_edge_cases.md (JTB-008) |
+| Missing Year Marking | ⚠️ Partial | N/A displayed but years not marked | specs/09_edge_cases.md (JTB-010) |
+| Quarterly Period | ⚠️ Partial | Backend supports param but doesn't fetch quarterly data | specs/02_financial_metrics.md |
+| Industry Filter UI | ⚠️ Partial | Backend has logic but frontend doesn't expose | specs/10_industry_comparison.md |
 
 ---
 
@@ -94,56 +111,111 @@
 | specs/05_frontend.md | Frontend pages and components | ⚠️ Partial | All pages done; charts/components missing |
 | specs/06_backend.md | API endpoints | ✅ Complete | All endpoints implemented |
 | specs/07_ux.md | UX requirements | ⚠️ Partial | Lazy loading done; virtual scrolling/debounce missing |
-| specs/08_custom_formula.md | Custom formula engine | ❌ NOT STARTED | No formula engine code exists |
+| specs/08_custom_formula.md | Custom formula engine | ✅ Complete | Formula lexer, parser, evaluator, service, API, and UI |
 | specs/09_edge_cases.md | Edge case handling | ⚠️ Partial | Status/risk flags done; N/A marking incomplete |
 | specs/10_industry_comparison.md | Industry comparison | ❌ NOT STARTED | No industry comparison code exists |
 | specs/11_visualization.md | Data visualization | ❌ NOT STARTED | No visualization components exist |
-| specs/12_future.md | Future extensions | ❌ NOT STARTED | Future features not implemented |
 
 ---
 
 ## Priority Order (Implementation Sequence)
 
-### Phase 9: Custom Formula Engine (JTB-005, JTB-006)
-- [ ] Formula Lexer (`formula_lexer.py`)
-- [ ] Formula Parser (`formula_parser.py`)
-- [ ] Formula Evaluator (`formula_evaluator.py`)
-- [ ] Formula Service (`formula_service.py`)
-- [ ] Formula API Endpoints (validate, evaluate)
-- [ ] FormulaEditor UI Component with syntax highlighting
+### Phase 9: Custom Formula Engine (JTB-005, JTB-006) - ✅ COMPLETE
+- [x] Create `formula_lexer.py` - Tokenize formula strings
+- [x] Create `formula_parser.py` - Parse tokens into AST
+- [x] Create `formula_evaluator.py` - Evaluate AST against financial data
+- [x] Create `formula_service.py` - Business logic for formula management
+- [x] Add formula API endpoints (validate, evaluate)
+- [x] Add `CustomFormula` type to frontend lib/types.ts
+- [x] Create `formulaStore.ts` for custom formula state management
+- [x] Create `FormulaEditor` UI component with syntax highlighting
+- [x] Add formula validation API call to frontend
 
-### Phase 10: Industry Comparison (JTB-011, JTB-012)
-- [ ] CSRC Classification API (`stock_info_csrc_main`)
-- [ ] SW Classification API (3 levels: 28/104/227)
-- [ ] Peer Comparison API (`/company/{code}/comparison`)
-- [ ] Radar Chart Component
-- [ ] Multi-industry Selection & Exclude
+### Phase 10: Data Accuracy Fixes
+- [ ] Implement TTM rolling 12-month aggregation from quarterly data
+- [ ] Implement data disclosure timing alignment (Q1: Apr, Q2: Aug, Q3: Oct, Q4: Mar-Apr)
+- [ ] Fetch actual company status (ACTIVE/SUSPENDED/DELISTED) from akshare
+- [ ] Fetch actual ST/*ST risk flags from akshare
 
-### Phase 11: Visualization (JTB-015, JTB-016)
-- [ ] TreeMap Component (result distribution)
-- [ ] TrendComparisonChart (up to 10 companies, dual Y-axis)
-- [ ] ConditionTree (condition structure diagram)
-- [ ] ValueSlider (range slider with histogram)
-- [ ] IndustryHeatmap (industry distribution)
+### Phase 11: Industry Comparison (JTB-011, JTB-012, JTB-013)
+- [ ] Add CSRC industry classification API (stock_info_csrc_main)
+- [ ] Add SW (申万) classification API (3 levels)
+- [ ] Add peer comparison API endpoint (`/company/{code}/comparison`)
+- [ ] Create industry benchmark calculation (avg, median, percentile)
+- [ ] Create RadarChart component
+- [ ] Add multi-industry selection to screening UI
+- [ ] Add exclude industry option to screening UI
+- [ ] Expose industry filter in frontend (currently backend-only)
 
-### Phase 3.3: TTM Rolling Calculation
-- [ ] Implement rolling 12-month aggregation from quarterly data
+### Phase 12: Visualization (JTB-014, JTB-015, JTB-016)
+- [ ] Create TreeMap component for result distribution
+- [ ] Create TrendComparisonChart (up to 10 companies, dual Y-axis)
+- [ ] Create ConditionTree visualization
+- [ ] Create ValueSlider with histogram
+- [ ] Create IndustryHeatmap
 
-### Phase 4.3: Data Disclosure Timing
-- [ ] Handle quarterly/annual report cycle alignment (Q1: Apr, Q2: Aug, Q3: Oct, Q4: Mar-Apr)
+### Phase 13: Multi-field Sorting
+- [ ] Add secondary sort field support (primary + secondary sort)
 
-### Phase 8.x: Multi-field Sorting
-- [ ] Add secondary sort field support
+### Phase 14: Edge Case Enhancements
+- [ ] Show N/A for ROE when profit is negative (instead of negative value)
+- [ ] Add risk warning text messages (not just badges)
+- [ ] Mark missing years explicitly in results table
 
-### Phase 13: UX & Performance
-- [ ] Virtual scrolling for large result sets
-- [ ] Debounced inputs (300ms)
-- [ ] Memoization with createMemo()
+### Phase 15: UX & Performance
+- [ ] Implement virtual scrolling for large result sets
+- [ ] Add 300ms debounce to condition inputs
+- [ ] Add createMemo for expensive computations
 
-### Phase 12.x: Edge Case Enhancements
-- [ ] Risk warning messages
-- [ ] Negative profit handling (N/A for ROE)
-- [ ] Missing year marking in results
+---
+
+## New Specification Documents Needed
+
+The following missing features need specification documents authored:
+
+1. **`specs/08_custom_formula.md`** - Already exists but needs enhancement with:
+   - Detailed lexer/parser specification
+   - AST node types
+   - Error message formats
+
+2. **`specs/10_industry_comparison.md`** - Already exists but needs enhancement with:
+   - API response schemas
+   - akshare functions to use for classifications
+   - Peer comparison algorithm
+
+3. **`specs/11_visualization.md`** - Already exists but needs component specs:
+   - TreeMap data format
+   - TrendChart API
+   - ConditionTree node structure
+
+---
+
+## Reference: Directory Structure Per Specs
+
+```
+stock-analysis-1/
+├── src/
+│   ├── frontend/
+│   │   ├── components/
+│   ├── pages/
+│   ├── stores/
+│   ├── api/
+│   └── lib/
+│   └── backend/
+│       ├── app/
+│       │   ├── api/v1/endpoints/
+│       │   ├── core/
+│       │   ├── models/
+│       │   ├── services/
+│       │   └── utils/
+│       ├── tests/
+│       ├── main.py
+│       └── requirements.txt
+├── tests/
+├── specs/
+├── package.json
+└── requirements.txt
+```
 
 ---
 
@@ -164,33 +236,4 @@ npm install
 npm test
 npm run typecheck
 npm run lint
-```
-
----
-
-## Reference: Directory Structure Per Specs
-
-```
-stock-analysis-1/
-├── src/
-│   ├── frontend/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── stores/
-│   │   ├── api/
-│   │   └── lib/
-│   └── backend/
-│       ├── app/
-│       │   ├── api/v1/endpoints/
-│       │   ├── core/
-│       │   ├── models/
-│       │   ├── services/
-│       │   └── utils/
-│       ├── tests/
-│       ├── main.py
-│       └── requirements.txt
-├── tests/
-├── specs/
-├── package.json
-└── requirements.txt
 ```

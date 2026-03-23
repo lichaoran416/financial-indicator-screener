@@ -90,3 +90,23 @@ export interface SavedScreen {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface CustomFormula {
+  id: string;
+  name: string;
+  formula: string;
+  description?: string;
+  createdAt?: string;
+}
+
+export interface FormulaValidationResult {
+  valid: boolean;
+  error?: string;
+  ast?: Record<string, unknown>;
+}
+
+export interface FormulaEvaluationResult {
+  success: boolean;
+  error?: string;
+  result?: number;
+}
