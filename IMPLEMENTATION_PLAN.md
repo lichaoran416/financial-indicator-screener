@@ -17,6 +17,8 @@
 | Frontend Results Components | ✅ Complete |
 | Frontend Common Components | ✅ Complete |
 | Frontend ScreeningPage | ✅ Complete |
+| Frontend CompanyDetailPage | ✅ Complete |
+| Frontend HistoryPage | ✅ Complete |
 | Frontend Lib (types, formatters) | ✅ Complete |
 | Frontend Build | ✅ Verified |
 | Tests Structure | ✅ Created |
@@ -40,7 +42,7 @@
 | specs/02_financial_metrics.md | Financial metrics formulas | Implemented |
 | specs/03_data_source.md | akshare integration + Redis caching | Implemented |
 | specs/04_technical_architecture.md | Tech stack definition | Complete |
-| specs/05_frontend.md | Frontend pages and components | In Progress (ScreeningPage done) |
+| specs/05_frontend.md | Frontend pages and components | In Progress (All pages done, peer comparison pending) |
 | specs/06_backend.md | API endpoints | Implemented |
 | specs/07_ux.md | UX requirements | Partial |
 | specs/08_custom_formula.md | Custom formula engine | Not started |
