@@ -221,8 +221,12 @@ class FinancialService:
         limit: int = 50,
         page: int = 1,
         industry: Optional[str] = None,
+        include_suspended: bool = False,
+        profit_only: bool = False,
+        include_st: bool = True,
+        require_complete_data: bool = False,
     ) -> dict[str, Any]:
-        cache_key = f"screen:{hash(str(conditions))}:{sort_by}:{order}:{limit}:{page}:{industry}"
+        cache_key = f"screen:{hash(str(conditions))}:{sort_by}:{order}:{limit}:{page}:{industry}:{include_suspended}:{profit_only}:{include_st}:{require_complete_data}"
         cached = await redis_manager.get_json(cache_key)
         if cached:
             return cached
@@ -235,8 +239,26 @@ class FinancialService:
             if not code:
                 continue
 
+            status = company.get("status", CompanyStatus.ACTIVE.value)
+            risk_flag = company.get("risk_flag", RiskFlag.NORMAL.value)
+            
+            if not include_suspended and status in (CompanyStatus.SUSPENDED.value, CompanyStatus.DELISTED.value):
+                continue
+            
+            if not include_st and risk_flag in (RiskFlag.ST.value, RiskFlag.STAR_ST.value, RiskFlag.DELISTING_RISK.value):
+                continue
+
             metrics = await self.get_company_metrics(code)
             company["metrics"] = metrics
+
+            if profit_only:
+                net_profit = metrics.get("net_profit") or metrics.get("roe", 0)
+                if net_profit is None or net_profit <= 0:
+                    continue
+
+            if require_complete_data:
+                if not self._has_complete_metrics(metrics, len(conditions)):
+                    continue
 
             if self._evaluate_conditions(company, conditions):
                 screened.append(company)
@@ -260,6 +282,13 @@ class FinancialService:
         }
         await redis_manager.set_json(cache_key, result, CACHE_TTL)
         return result
+
+    def _has_complete_metrics(self, metrics: dict[str, Any], num_conditions: int) -> bool:
+        if not metrics:
+            return False
+        required_metrics = ["roe", "roi", "gross_margin", "net_profit_growth", "revenue_growth"]
+        present_count = sum(1 for m in required_metrics if metrics.get(m) is not None)
+        return present_count >= min(num_conditions, 3)
 
     def _evaluate_conditions(
         self, company: dict[str, Any], conditions: list[dict[str, Any]]

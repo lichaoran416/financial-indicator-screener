@@ -193,6 +193,7 @@ requirements.txt                  # Backend dependencies at root
 ### 5.4 Saved Screens Endpoints
 - [x] `POST /api/v1/screen/save` - Save screening conditions with name
 - [x] `GET /api/v1/screen/saved` - Get saved screening conditions
+- [x] `DELETE /api/v1/screen/saved/{screen_id}` - Delete a saved screen
 
 ---
 
@@ -239,7 +240,7 @@ requirements.txt                  # Backend dependencies at root
 ### 7.3 HistoryPage (/history)
 - [x] `src/frontend/src/pages/HistoryPage.tsx`
 - [x] Saved screening conditions management
-- [x] Load/delete saved screens (delete UI implemented, API not available)
+- [x] Load/delete saved screens (both UI and API implemented)
 
 ---
 
@@ -379,25 +380,25 @@ class CompanyIndustries(BaseModel):
 ## Phase 12: Edge Cases (specs/09_edge_cases.md)
 
 ### 12.1 Suspended/Delisted Companies (JTB-007)
-- [ ] `CompanyStatus` enum: ACTIVE, SUSPENDED, DELISTED
+- [x] `CompanyStatus` enum: ACTIVE, SUSPENDED, DELISTED (implemented in schemas.py)
+- [x] `include_suspended` filter in ScreenRequest (default: False)
 - [ ] Status badge UI component
-- [ ] Optional filter toggle (default: hidden)
 - [ ] Delisted company historical data retention
 
 ### 12.2 Loss-Making Companies (JTB-008)
 - [ ] Negative values display in red
-- [ ] "Profit-making companies only" filter
+- [x] "Profit-making companies only" filter (`profit_only` in ScreenRequest)
 - [ ] Negative net profit handling (ROE shows negative or N/A)
 
 ### 12.3 ST/*ST Stocks (JTB-009)
-- [ ] `RiskFlag` enum: NORMAL, ST, STAR_ST, DELISTING_RISK
+- [x] `RiskFlag` enum: NORMAL, ST, STAR_ST, DELISTING_RISK (implemented in schemas.py)
 - [ ] Special ST/*ST marker with warning styling
-- [ ] Optional filter toggle (default: show but mark)
+- [x] `include_st` filter in ScreenRequest (default: True - show but mark)
 - [ ] Risk warning message
 
 ### 12.4 Data Missing (JTB-010)
 - [ ] Display "N/A" or dashed line for missing data
-- [ ] "Require complete data" filter option
+- [x] "Require complete data" filter option (`require_complete_data` in ScreenRequest)
 - [ ] Mark missing years in results
 
 ---
@@ -475,16 +476,16 @@ tests/frontend/
 
 ## Key Gaps Identified
 
-1. **No source code exists** - Everything needs to be built from scratch
+1. **Source code exists** - Issue: akshare_client was missing methods (get_stock_list, get_financial_data, get_market_capital) - FIXED
 2. **TTM calculation** - Rolling 12-month aggregation from quarterly data
 3. **Multi-field sorting** - Primary + secondary sort support
-4. **CSV export** - Export screening results
+4. **CSV export** - Export screening results (frontend ExportButton exists but backend integration needed)
 5. **Data disclosure timing** - Handle quarterly/annual report cycle alignment
 6. **Formula engine AST** - Abstract syntax tree for custom formulas
-7. **akshare error handling** - Robust error handling for data source issues
-8. **Cache key strategy** - Proper cache invalidation strategy
-9. **Industry classification** - Three classification systems (CSRC, THS, SW)
-10. **Edge case flags** - Company status, risk flags for ST stocks
+7. **akshare error handling** - Robust error handling for data source issues (retry logic exists)
+8. **Industry classification** - Three classification systems (CSRC, THS, SW)
+9. **Edge case flags** - Company status, risk flags implemented in schemas - FIXED
+10. **HistoryPage delete API** - Missing DELETE endpoint - FIXED
 
 ---
 

@@ -43,6 +43,10 @@ class ScreenRequest(BaseModel):
     limit: int = Field(default=50, ge=1, le=500, description="Results limit")
     page: int = Field(default=1, ge=1, description="Page number")
     industry: Optional[str] = Field(default=None, description="Industry filter")
+    include_suspended: bool = Field(default=False, description="Include suspended/delisted companies (JTB-007)")
+    profit_only: bool = Field(default=False, description="Filter to profit-making companies only (JTB-008)")
+    include_st: bool = Field(default=True, description="Include ST/*ST stocks (JTB-009)")
+    require_complete_data: bool = Field(default=False, description="Require complete data for all periods (JTB-010)")
 
 
 class CompanyInfo(BaseModel):

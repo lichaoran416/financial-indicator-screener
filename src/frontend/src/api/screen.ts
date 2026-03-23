@@ -18,6 +18,10 @@ export interface ScreenRequest {
   limit?: number;
   page?: number;
   industry?: string;
+  include_suspended?: boolean;
+  profit_only?: boolean;
+  include_st?: boolean;
+  require_complete_data?: boolean;
 }
 
 export interface CompanyInfo {
@@ -58,4 +62,9 @@ export const saveScreen = async (request: SaveScreenRequest): Promise<SavedScree
 export const getSavedScreens = async (): Promise<SavedScreen[]> => {
   const response = await apiClient.get<SavedScreen[]>("/screen/saved");
   return response.data;
+};
+
+export const deleteSavedScreen = async (screenId: string): Promise<boolean> => {
+  const response = await apiClient.delete<{ deleted: boolean }>(`/screen/saved/${screenId}`);
+  return response.data.deleted;
 };

@@ -26,6 +26,10 @@ async def get_companies_from_financial_service(
     order: str = "desc",
     limit: int = 50,
     page: int = 1,
+    include_suspended: bool = False,
+    profit_only: bool = False,
+    include_st: bool = True,
+    require_complete_data: bool = False,
 ) -> tuple[List[CompanyInfo], int]:
     from app.services.financial import financial_service
 
@@ -37,6 +41,10 @@ async def get_companies_from_financial_service(
         order=order,
         limit=limit,
         page=page,
+        include_suspended=include_suspended,
+        profit_only=profit_only,
+        include_st=include_st,
+        require_complete_data=require_complete_data,
     )
     companies = [CompanyInfo(**company) for company in result.get("companies", [])]
     total = result.get("total", 0)
@@ -56,6 +64,10 @@ async def screen_companies_endpoint(request: ScreenRequest) -> ScreenResponse:
             order=request.order.value,
             limit=request.limit,
             page=request.page,
+            include_suspended=request.include_suspended,
+            profit_only=request.profit_only,
+            include_st=request.include_st,
+            require_complete_data=request.require_complete_data,
         )
         return ScreenResponse(companies=companies, total=total)
     except Exception as e:
@@ -88,3 +100,14 @@ async def get_saved_screens() -> List[SavedScreen]:
     """
     saved_screens = await redis_manager.get_json(SAVED_SCREENS_KEY) or []
     return [SavedScreen(**screen) for screen in saved_screens]
+
+
+@router.delete("/saved/{screen_id}")
+async def delete_saved_screen(screen_id: str) -> dict[str, bool]:
+    """
+    Delete a saved screening condition by ID.
+    """
+    existing = await redis_manager.get_json(SAVED_SCREENS_KEY) or []
+    updated = [s for s in existing if s.get("id") != screen_id]
+    await redis_manager.set_json(SAVED_SCREENS_KEY, updated)
+    return {"deleted": len(existing) > len(updated)}

@@ -1,6 +1,6 @@
 import { createSignal, onMount, Show, For } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
-import { getSavedScreens, SavedScreen } from '../api/screen';
+import { getSavedScreens, deleteSavedScreen, SavedScreen } from '../api/screen';
 import { LoadingSpinner, ErrorState, EmptyState } from '../components/common';
 
 const SCREEN_CONDITIONS_KEY = 'loaded_screen_conditions';
@@ -33,9 +33,13 @@ export default function HistoryPage() {
     navigate('/');
   };
 
-  const handleDelete = (screen: SavedScreen) => {
-    // eslint-disable-next-line no-console
-    console.log('Delete not implemented yet', screen.id);
+  const handleDelete = async (screen: SavedScreen) => {
+    try {
+      await deleteSavedScreen(screen.id);
+      setScreens((prev) => prev.filter((s) => s.id !== screen.id));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to delete screen');
+    }
   };
 
   const formatDate = (dateStr: string) => {
