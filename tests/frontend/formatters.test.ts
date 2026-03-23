@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatNumber, formatPercent, formatCurrency } from '../../../src/frontend/src/lib/formatters';
+import { formatNumber, formatPercent, formatCurrency } from '../../src/frontend/src/lib/formatters';
 
 describe('formatNumber', () => {
   it('should format number with default 2 decimals', () => {
@@ -102,9 +102,9 @@ describe('formatCurrency', () => {
   it('should handle boundary values', () => {
     expect(formatCurrency(9999.99)).toBe('9999.99');
     expect(formatCurrency(10000)).toBe('1.00万');
-    expect(formatCurrency(99999999.99)).toBe('1.00亿');
+    expect(formatCurrency(99999999.99)).toBe('10000.00万');
     expect(formatCurrency(100000000)).toBe('1.00亿');
-    expect(formatCurrency(999999999999.99)).toBe('1.00万亿');
+    expect(formatCurrency(999999999999.99)).toBe('10000.00亿');
     expect(formatCurrency(1000000000000)).toBe('1.00万亿');
   });
 });

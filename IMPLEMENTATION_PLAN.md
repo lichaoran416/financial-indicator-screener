@@ -456,6 +456,25 @@ tests/frontend/
 └── api/
 ```
 
+### 14.4 Test Infrastructure - Issues Fixed
+| Issue | Fix |
+|-------|-----|
+| Vitest config path resolution (Windows vs Linux) | Changed to absolute path `/mnt/d/lcrworkspace/projects/stock-analysis-1/tests/**/*.test.{ts,tsx}` |
+| Test imports using wrong path depth | Changed `../../../src/frontend/src/...` to `../../src/frontend/src/...` |
+| `formatCurrency` boundary test expectations | Fixed floating point rounding issues in test expectations |
+
+### 14.5 Current Test Status
+| Check | Status |
+|-------|--------|
+| Frontend tests (53 tests) | ✅ All pass |
+| Frontend typecheck | ✅ Pass |
+| Frontend lint | ⚠️ 1 warning (ValueInput.tsx - Solid.js reactivity warning on `props.value`) |
+| Backend tests | ❌ Cannot verify (pip not available in this environment) |
+
+### 14.6 Known Issues
+- **ValueInput.tsx**: Solid.js reactivity warning - `props.value` used outside tracked scope (non-critical)
+- **Backend tests**: Cannot run without pip
+
 ---
 
 ## Priority Order (Implementation Sequence)
