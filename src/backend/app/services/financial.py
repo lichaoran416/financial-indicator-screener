@@ -109,28 +109,49 @@ class FinancialService:
 
         metrics = {}
         if indicator_data and isinstance(indicator_data, dict):
-            if "roe" in indicator_data:
-                metrics["roe"] = self._safe_get_last_values(indicator_data.get("roe", []))
-            if "roic" in indicator_data or "roi" in indicator_data:
-                metrics["roi"] = self._safe_get_last_values(
-                    indicator_data.get("roic", indicator_data.get("roi", []))
-                )
-            if "gross_profit_margin" in indicator_data:
-                metrics["gross_margin"] = self._safe_get_last_values(
-                    indicator_data.get("gross_profit_margin", [])
-                )
+            if period == Period.TTM.value:
+                metrics["roe"] = self._get_ttm_sum(
+                    indicator_data, ["roe"], 4
+                ) if "roe" in indicator_data else None
+                metrics["roi"] = self._get_ttm_sum(
+                    indicator_data, ["roic", "roi"], 4
+                ) if "roic" in indicator_data or "roi" in indicator_data else None
+                metrics["gross_margin"] = self._get_ttm_sum(
+                    indicator_data, ["gross_profit_margin"], 4
+                ) if "gross_profit_margin" in indicator_data else None
+            else:
+                if "roe" in indicator_data:
+                    metrics["roe"] = self._safe_get_last_values(indicator_data.get("roe", []))
+                if "roic" in indicator_data or "roi" in indicator_data:
+                    metrics["roi"] = self._safe_get_last_values(
+                        indicator_data.get("roic", indicator_data.get("roi", []))
+                    )
+                if "gross_profit_margin" in indicator_data:
+                    metrics["gross_margin"] = self._safe_get_last_values(
+                        indicator_data.get("gross_profit_margin", [])
+                    )
 
-        financial_metrics = self._extract_financial_metrics(financial_data)
+        financial_metrics = self._extract_financial_metrics(financial_data, period)
         metrics.update(financial_metrics)
 
         if price_data:
             market_cap = await akshare_client.get_market_capital(code)
             if market_cap:
                 metrics["market_cap"] = market_cap
-                net_profit = self._get_net_profit(financial_data)
+                if period == Period.TTM.value:
+                    net_profit = self._get_ttm_sum(
+                        financial_data.get("income", {}), ["净利润", "归属母公司净利润"], 4
+                    )
+                else:
+                    net_profit = self._get_net_profit(financial_data)
                 if net_profit and net_profit > 0:
                     metrics["pe"] = market_cap / net_profit
-                total_equity = self._get_total_equity(financial_data)
+                if period == Period.TTM.value:
+                    total_equity = self._find_column_value(
+                        financial_data.get("balance", {}), ["所有者权益合计", "股东权益", "净资产"]
+                    )
+                else:
+                    total_equity = self._get_total_equity(financial_data)
                 if total_equity and total_equity > 0:
                     metrics["pb"] = market_cap / total_equity
 
@@ -144,7 +165,27 @@ class FinancialService:
             return None
         return float(valid_values[-1])
 
-    def _extract_financial_metrics(self, financial_data: dict[str, Any]) -> dict[str, Any]:
+    def _get_ttm_sum(
+        self, data: dict[str, list], column_names: list[str], periods: int = 4
+    ) -> Optional[float]:
+        for col_name in column_names:
+            for key, values in data.items():
+                if isinstance(values, list) and len(values) > 0:
+                    if col_name in key:
+                        valid_values = [
+                            float(v) for v in values[:periods]
+                            if v is not None and str(v) != "nan"
+                        ]
+                        if len(valid_values) >= periods:
+                            return sum(valid_values)
+                        elif len(valid_values) > 0:
+                            return sum(valid_values)
+                        return None
+        return None
+
+    def _extract_financial_metrics(
+        self, financial_data: dict[str, Any], period: str = "annual"
+    ) -> dict[str, Any]:
         metrics = {}
         if not financial_data:
             return metrics
@@ -153,24 +194,32 @@ class FinancialService:
         balance = financial_data.get("balance")
 
         if income and isinstance(income, dict):
-            revenue = self._find_column_value(income, ["营业总收入", "营业收入", "营收"])
-            total_cost = self._find_column_value(income, ["营业总成本", "营业成本", "成本"])
-            net_profit = self._find_column_value(income, ["净利润", "归属母公司净利润"])
-            previous_net_profit = self._find_previous_value(income, ["净利润", "归属母公司净利润"])
-            previous_revenue = self._find_previous_value(income, ["营业总收入", "营业收入", "营收"])
+            if period == Period.TTM.value:
+                revenue = self._get_ttm_sum(income, ["营业总收入", "营业收入", "营收"], 4)
+                total_cost = self._get_ttm_sum(income, ["营业总成本", "营业成本", "成本"], 4)
+                net_profit = self._get_ttm_sum(income, ["净利润", "归属母公司净利润"], 4)
+                previous_net_profit = None
+                previous_revenue = None
+            else:
+                revenue = self._find_column_value(income, ["营业总收入", "营业收入", "营收"])
+                total_cost = self._find_column_value(income, ["营业总成本", "营业成本", "成本"])
+                net_profit = self._find_column_value(income, ["净利润", "归属母公司净利润"])
+                previous_net_profit = self._find_previous_value(income, ["净利润", "归属母公司净利润"])
+                previous_revenue = self._find_previous_value(income, ["营业总收入", "营业收入", "营收"])
 
             if revenue and total_cost and revenue > 0:
                 metrics["gross_margin"] = (revenue - total_cost) / revenue * 100
 
-            if net_profit and previous_net_profit and previous_net_profit != 0:
-                metrics["net_profit_growth"] = (
-                    (net_profit - previous_net_profit) / abs(previous_net_profit) * 100
-                )
+            if period != Period.TTM.value:
+                if net_profit and previous_net_profit and previous_net_profit != 0:
+                    metrics["net_profit_growth"] = (
+                        (net_profit - previous_net_profit) / abs(previous_net_profit) * 100
+                    )
 
-            if revenue and previous_revenue and previous_revenue != 0:
-                metrics["revenue_growth"] = (
-                    (revenue - previous_revenue) / abs(previous_revenue) * 100
-                )
+                if revenue and previous_revenue and previous_revenue != 0:
+                    metrics["revenue_growth"] = (
+                        (revenue - previous_revenue) / abs(previous_revenue) * 100
+                    )
 
         if balance and isinstance(balance, dict):
             total_debt = self._find_column_value(balance, ["负债合计", "总负债", "负债总额"])
