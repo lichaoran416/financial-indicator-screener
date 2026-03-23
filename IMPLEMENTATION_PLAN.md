@@ -1,6 +1,6 @@
 # Implementation Plan - A股财务指标分析应用
 
-## Status: IN PROGRESS - Phase 1-6 Complete
+## Status: IN PROGRESS - Phase 1-8 Partially Complete (Frontend Pages/Components)
 
 ## Completed Implementation
 | Component | Status |
@@ -13,7 +13,10 @@
 | Frontend App.tsx with Routing | ✅ Complete |
 | Frontend API Client | ✅ Complete |
 | Frontend Stores | ✅ Complete |
-| Frontend Pages (placeholders) | ✅ Complete |
+| Frontend Condition Components | ✅ Complete |
+| Frontend Results Components | ✅ Complete |
+| Frontend Common Components | ✅ Complete |
+| Frontend ScreeningPage | ✅ Complete |
 | Frontend Lib (types, formatters) | ✅ Complete |
 | Frontend Build | ✅ Verified |
 | Tests Structure | ✅ Created |
@@ -37,7 +40,7 @@
 | specs/02_financial_metrics.md | Financial metrics formulas | Implemented |
 | specs/03_data_source.md | akshare integration + Redis caching | Implemented |
 | specs/04_technical_architecture.md | Tech stack definition | Complete |
-| specs/05_frontend.md | Frontend pages and components | Partial |
+| specs/05_frontend.md | Frontend pages and components | In Progress (ScreeningPage done) |
 | specs/06_backend.md | API endpoints | Implemented |
 | specs/07_ux.md | UX requirements | Partial |
 | specs/08_custom_formula.md | Custom formula engine | Not started |
@@ -219,10 +222,11 @@ requirements.txt                  # Backend dependencies at root
 ## Phase 7: Frontend Pages (specs/05_frontend.md)
 
 ### 7.1 ScreeningPage (/)
-- [ ] `src/frontend/src/pages/ScreeningPage.tsx`
-- [ ] Condition builder integration
-- [ ] Results table with sorting/pagination
-- [ ] CSV export button
+- [x] `src/frontend/src/pages/ScreeningPage.tsx` - Full implementation with:
+  - Condition builder integration
+  - Results table with sorting/pagination
+  - CSV export button
+  - Loading/Error/Timeout states
 
 ### 7.2 CompanyDetailPage (/company/:code)
 - [ ] `src/frontend/src/pages/CompanyDetailPage.tsx`
@@ -244,7 +248,6 @@ requirements.txt                  # Backend dependencies at root
 |-----------|------|---------|
 | ConditionBuilder | `components/condition/ConditionBuilder.tsx` | Main container |
 | ConditionRow | `components/condition/ConditionRow.tsx` | Single condition row |
-| TimeRangeSelector | `components/condition/TimeRangeSelector.tsx` | Annual/Quarterly/TTM |
 | MetricDropdown | `components/condition/MetricDropdown.tsx` | Metric selection |
 | OperatorSelector | `components/condition/OperatorSelector.tsx` | >, <, >=, <=, == |
 | ValueInput | `components/condition/ValueInput.tsx` | Numeric input |
@@ -270,8 +273,8 @@ requirements.txt                  # Backend dependencies at root
 ### 8.4 Layout Components
 | Component | File | Purpose |
 |-----------|------|---------|
-| Header | `components/layout/Header.tsx` | Top navigation |
-| PageContainer | `components/layout/PageContainer.tsx` | Page wrapper |
+| Header | `components/layout/Header.tsx` | Top navigation (in App.tsx) |
+| PageContainer | `components/layout/PageContainer.tsx` | Page wrapper (inline in App.tsx) |
 
 ---
 

@@ -1,0 +1,18 @@
+.row:hover {
+  background-color: #f9fafb;
+}
+
+.link {
+  color: #3b82f6;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.badge {
+  font-weight: 500;
+  text-transform: capitalize;
+}

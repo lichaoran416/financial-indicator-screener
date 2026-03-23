@@ -7,7 +7,7 @@ export interface Condition {
   metric: string;
   operator: string;
   value: number;
-  period: Period;
+  period?: Period;
   years?: number;
 }
 

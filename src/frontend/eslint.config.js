@@ -18,6 +18,10 @@ export default [
         document: 'readonly',
         console: 'readonly',
         window: 'readonly',
+        Event: 'readonly',
+        HTMLInputElement: 'readonly',
+        KeyboardEvent: 'readonly',
+        InputEvent: 'readonly',
       },
     },
     plugins: {
