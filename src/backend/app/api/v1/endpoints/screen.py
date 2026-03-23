@@ -1,0 +1,90 @@
+import uuid
+from datetime import datetime
+from typing import Any, List
+
+from fastapi import APIRouter, HTTPException
+
+from app.core.redis import redis_manager
+from app.models.schemas import (
+    Condition,
+    CompanyInfo,
+    SaveScreenRequest,
+    SavedScreen,
+    ScreenRequest,
+    ScreenResponse,
+)
+
+router = APIRouter(prefix="/screen", tags=["screen"])
+
+SAVED_SCREENS_KEY = "saved_screens"
+
+
+async def get_companies_from_financial_service(
+    conditions: List[Condition],
+    industry: str | None = None,
+    sort_by: str | None = None,
+    order: str = "desc",
+    limit: int = 50,
+    page: int = 1,
+) -> tuple[List[CompanyInfo], int]:
+    from app.services.financial import financial_service
+
+    conditions_dicts = [cond.model_dump() for cond in conditions]
+    result = await financial_service.screen_companies(
+        conditions=conditions_dicts,
+        industry=industry,
+        sort_by=sort_by,
+        order=order,
+        limit=limit,
+        page=page,
+    )
+    companies = [CompanyInfo(**company) for company in result.get("companies", [])]
+    total = result.get("total", 0)
+    return companies, total
+
+
+@router.post("", response_model=ScreenResponse)
+async def screen_companies_endpoint(request: ScreenRequest) -> ScreenResponse:
+    """
+    Screen companies by financial conditions.
+    """
+    try:
+        companies, total = await get_companies_from_financial_service(
+            conditions=request.conditions,
+            industry=request.industry,
+            sort_by=request.sort_by,
+            order=request.order.value,
+            limit=request.limit,
+            page=request.page,
+        )
+        return ScreenResponse(companies=companies, total=total)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/save", response_model=SavedScreen)
+async def save_screen(request: SaveScreenRequest) -> SavedScreen:
+    """
+    Save screening conditions to Redis with permanent TTL.
+    """
+    saved_screen = SavedScreen(
+        id=str(uuid.uuid4()),
+        name=request.name,
+        conditions=request.conditions,
+        created_at=datetime.utcnow(),
+    )
+
+    existing = await redis_manager.get_json(SAVED_SCREENS_KEY) or []
+    existing.append(saved_screen.model_dump(mode="json"))
+    await redis_manager.set_json(SAVED_SCREENS_KEY, existing)
+
+    return saved_screen
+
+
+@router.get("/saved", response_model=List[SavedScreen])
+async def get_saved_screens() -> List[SavedScreen]:
+    """
+    Get all saved screening conditions from Redis.
+    """
+    saved_screens = await redis_manager.get_json(SAVED_SCREENS_KEY) or []
+    return [SavedScreen(**screen) for screen in saved_screens]
