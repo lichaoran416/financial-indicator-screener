@@ -20,6 +20,10 @@ export default function ScreeningPage() {
   const [sortOrder, setSortOrder] = createSignal<SortOrder>('desc');
   const [metrics, setMetrics] = createSignal<MetricInfo[]>([]);
   const [timeout, setTimeout] = createSignal(false);
+  const [includeSuspended, setIncludeSuspended] = createSignal(false);
+  const [profitOnly, setProfitOnly] = createSignal(false);
+  const [includeSt, setIncludeSt] = createSignal(true);
+  const [requireCompleteData, setRequireCompleteData] = createSignal(false);
 
   const loadMetrics = async () => {
     try {
@@ -62,6 +66,10 @@ export default function ScreeningPage() {
         order: sortOrder(),
         limit: limit(),
         page: page(),
+        include_suspended: includeSuspended(),
+        profit_only: profitOnly(),
+        include_st: includeSt(),
+        require_complete_data: requireCompleteData(),
       };
 
       const response = await screenCompanies(request);
@@ -141,6 +149,43 @@ export default function ScreeningPage() {
           onRemove={handleRemoveCondition}
           onLogicChange={handleLogicChange}
         />
+      </section>
+
+      <section style={{ background: 'white', padding: '1rem', 'border-radius': '8px', 'box-shadow': '0 1px 3px rgba(0,0,0,0.1)' }}>
+        <div style={{ display: 'flex', gap: '1.5rem', 'flex-wrap': 'wrap', 'align-items': 'center' }}>
+          <label style={{ display: 'flex', gap: '0.5rem', 'align-items': 'center', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={includeSuspended()}
+              onChange={(e) => setIncludeSuspended(e.currentTarget.checked)}
+            />
+            <span>Include suspended/delisted</span>
+          </label>
+          <label style={{ display: 'flex', gap: '0.5rem', 'align-items': 'center', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={profitOnly()}
+              onChange={(e) => setProfitOnly(e.currentTarget.checked)}
+            />
+            <span>Profit-making only</span>
+          </label>
+          <label style={{ display: 'flex', gap: '0.5rem', 'align-items': 'center', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={includeSt()}
+              onChange={(e) => setIncludeSt(e.currentTarget.checked)}
+            />
+            <span>Include ST/*ST stocks</span>
+          </label>
+          <label style={{ display: 'flex', gap: '0.5rem', 'align-items': 'center', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={requireCompleteData()}
+              onChange={(e) => setRequireCompleteData(e.currentTarget.checked)}
+            />
+            <span>Require complete data</span>
+          </label>
+        </div>
       </section>
 
       <section style={{ background: 'white', padding: '1.5rem', 'border-radius': '8px', 'box-shadow': '0 1px 3px rgba(0,0,0,0.1)' }}>

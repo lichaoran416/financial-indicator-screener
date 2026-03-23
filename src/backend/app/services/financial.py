@@ -241,11 +241,22 @@ class FinancialService:
 
             status = company.get("status", CompanyStatus.ACTIVE.value)
             risk_flag = company.get("risk_flag", RiskFlag.NORMAL.value)
-            
-            if not include_suspended and status in (CompanyStatus.SUSPENDED.value, CompanyStatus.DELISTED.value):
+            company_industry = company.get("industry")
+
+            if not include_suspended and status in (
+                CompanyStatus.SUSPENDED.value,
+                CompanyStatus.DELISTED.value,
+            ):
                 continue
-            
-            if not include_st and risk_flag in (RiskFlag.ST.value, RiskFlag.STAR_ST.value, RiskFlag.DELISTING_RISK.value):
+
+            if not include_st and risk_flag in (
+                RiskFlag.ST.value,
+                RiskFlag.STAR_ST.value,
+                RiskFlag.DELISTING_RISK.value,
+            ):
+                continue
+
+            if industry and company_industry and industry.lower() not in company_industry.lower():
                 continue
 
             metrics = await self.get_company_metrics(code)

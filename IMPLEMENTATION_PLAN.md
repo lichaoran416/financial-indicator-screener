@@ -351,7 +351,7 @@ class CompanyIndustries(BaseModel):
 - [ ] Percentile ranking (0-100)
 
 ### 10.4 Industry Filtering
-- [ ] Single industry filter
+- [x] Single industry filter (implemented in financial.py screen_companies)
 - [ ] Multi-industry selection
 - [ ] Exclude specific industries
 
@@ -382,23 +382,26 @@ class CompanyIndustries(BaseModel):
 ### 12.1 Suspended/Delisted Companies (JTB-007)
 - [x] `CompanyStatus` enum: ACTIVE, SUSPENDED, DELISTED (implemented in schemas.py)
 - [x] `include_suspended` filter in ScreenRequest (default: False)
-- [ ] Status badge UI component
+- [x] Status badge UI component (TableRow.tsx with color coding)
 - [ ] Delisted company historical data retention
 
 ### 12.2 Loss-Making Companies (JTB-008)
-- [ ] Negative values display in red
+- [x] Negative values display in red (TableRow.tsx)
 - [x] "Profit-making companies only" filter (`profit_only` in ScreenRequest)
+- [x] Edge case filter UI in ScreeningPage (profit_only checkbox)
 - [ ] Negative net profit handling (ROE shows negative or N/A)
 
 ### 12.3 ST/*ST Stocks (JTB-009)
 - [x] `RiskFlag` enum: NORMAL, ST, STAR_ST, DELISTING_RISK (implemented in schemas.py)
-- [ ] Special ST/*ST marker with warning styling
+- [x] Special ST/*ST marker with warning styling (CompanyDetailPage.tsx)
 - [x] `include_st` filter in ScreenRequest (default: True - show but mark)
+- [x] Edge case filter UI in ScreeningPage (include_st checkbox)
 - [ ] Risk warning message
 
 ### 12.4 Data Missing (JTB-010)
-- [ ] Display "N/A" or dashed line for missing data
+- [x] Display "N/A" or dashed line for missing data
 - [x] "Require complete data" filter option (`require_complete_data` in ScreenRequest)
+- [x] Edge case filter UI in ScreeningPage (require_complete_data checkbox)
 - [ ] Mark missing years in results
 
 ---
@@ -486,6 +489,8 @@ tests/frontend/
 8. **Industry classification** - Three classification systems (CSRC, THS, SW)
 9. **Edge case flags** - Company status, risk flags implemented in schemas - FIXED
 10. **HistoryPage delete API** - Missing DELETE endpoint - FIXED
+11. **Industry filtering** - Industry filter parameter accepted but not used - FIXED
+12. **Edge case filter UI** - Filters defined but UI not exposed in ScreeningPage - FIXED
 
 ---
 
