@@ -1,6 +1,6 @@
 # Implementation Plan - A股财务指标分析应用
 
-## Status: v0.5.6 - GAP-F7 FormulaEditor evaluation completed
+## Status: v0.5.7 - GAP-F7 FormulaEditor evaluation and GAP-F8 Pagination input completed
 
 ## CRITICAL CONSTRAINT: 只使用akshare提供的数据api, 不要使用其他数据api
 
@@ -38,7 +38,7 @@
 - [ ] **GAP-F5** `TreeMap.tsx:90-142` - Uses simple slice-and-dice algorithm instead of proper squarified treemap
 - [x] **GAP-F6** `TrendComparisonChart.tsx:155-161` - Time range selector is cosmetic only; always fetches 5 years regardless of selection [FIXED: Now uses yearsMap[timeRange()] to fetch correct years]
 - [x] **GAP-F7** `FormulaEditor.tsx:204-212` - Shows raw formula preview, not actual calculated result. `evaluateFormula` API exists but is never called [FIXED: FormulaEditor now calls evaluateFormula with sample company metrics and displays the calculated result]
-- [ ] **GAP-F8** `Pagination.tsx` - No direct page number input (only Previous/Next/ellipsis buttons)
+- [x] **GAP-F8** `Pagination.tsx` - No direct page number input (only Previous/Next/ellipsis buttons) [FIXED: Added page number input field with validation and Go button]
 - [x] **GAP-F9** `metrics.py:7-17` - Hardcoded English metric names instead of Chinese names from `FinancialService.METRIC_DEFINITIONS` (FIXED: Now uses Chinese names from METRIC_DEFINITIONS)
 
 ### Documentation Gaps
@@ -362,7 +362,7 @@ npm run lint
 - [ ] Implement squarified TreeMap algorithm (GAP-F5)
 - [x] Make time range selector functional (GAP-F6) - Now uses yearsMap[timeRange()] to fetch correct years
 - [x] Show formula calculation result in FormulaEditor (GAP-F7) - FormulaEditor now calls evaluateFormula with sample company metrics and displays result
-- [ ] Add direct page number input to pagination (GAP-F8)
+- [x] Add direct page number input to pagination (GAP-F8) - Added page number input field with validation, error display, and Enter key support
 - [x] Use Chinese metric names from METRIC_DEFINITIONS (GAP-F9) - metrics.py now uses Chinese names
 - [ ] Add missing test coverage
 - [ ] Document undocumented API endpoints

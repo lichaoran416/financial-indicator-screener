@@ -1,4 +1,4 @@
-import { Component, For, Show } from 'solid-js';
+import { Component, For, Show, createSignal } from 'solid-js';
 import styles from './Pagination.module.css';
 
 interface PaginationProps {
@@ -8,6 +8,9 @@ interface PaginationProps {
 }
 
 const Pagination: Component<PaginationProps> = (props) => {
+  const [jumpPage, setJumpPage] = createSignal('');
+  const [jumpError, setJumpError] = createSignal('');
+
   const pages = () => {
     const total = props.totalPages;
     const current = props.currentPage;
@@ -25,6 +28,27 @@ const Pagination: Component<PaginationProps> = (props) => {
       items.push(total);
     }
     return items;
+  };
+
+  const handleJump = () => {
+    const page = parseInt(jumpPage(), 10);
+    if (isNaN(page) || page < 1) {
+      setJumpError('Min page is 1');
+      return;
+    }
+    if (page > props.totalPages) {
+      setJumpError(`Max page is ${props.totalPages}`);
+      return;
+    }
+    setJumpError('');
+    setJumpPage('');
+    props.onPageChange(page);
+  };
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleJump();
+    }
   };
 
   return (
@@ -60,6 +84,27 @@ const Pagination: Component<PaginationProps> = (props) => {
       >
         Next
       </button>
+      <div class={styles.jumpContainer}>
+        <input
+          type="number"
+          class={styles.jumpInput}
+          placeholder="Page #"
+          min={1}
+          max={props.totalPages}
+          value={jumpPage()}
+          onInput={(e) => {
+            setJumpPage(e.currentTarget.value);
+            setJumpError('');
+          }}
+          onKeyDown={handleKeyDown}
+        />
+        <button class={styles.goButton} onClick={handleJump}>
+          Go
+        </button>
+        <Show when={jumpError()}>
+          <span class={styles.jumpError}>{jumpError()}</span>
+        </Show>
+      </div>
     </div>
   );
 };
