@@ -196,7 +196,7 @@
 | Component | Status | Notes |
 |-----------|--------|-------|
 | Virtual Scrolling | ❌ Missing | For large result sets |
-| Debounce (300ms) | ❌ Missing | Condition input debounce |
+| Debounce (300ms) | ✅ Complete | 300ms debounce added to ScreeningPage |
 | Memoization (createMemo) | ❌ Missing | Performance optimization |
 | Cache Invalidation | ❌ Missing | No mechanism for invalidating stale cache |
 
@@ -240,7 +240,7 @@
 - [ ] Create Multi-Company Comparison feature
 
 ### Phase 13: Multi-field Sorting
-- [ ] Add secondary sort field UI (backend already supports `sort_by_2`, `order_2`)
+- [x] Add secondary sort field UI - Added sort_by_2/order_2 to ScreenRequest, "Advanced Sort" UI in ScreeningPage
 
 ### Phase 14: Edge Case Enhancements
 - [ ] Add risk warning text messages (not just badges)

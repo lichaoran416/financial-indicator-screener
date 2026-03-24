@@ -16,6 +16,8 @@ export interface ScreenRequest {
   conditions: Condition[];
   sort_by?: string;
   order?: SortOrder;
+  sort_by_2?: string;
+  order_2?: SortOrder;
   limit?: number;
   page?: number;
   industries?: string[];

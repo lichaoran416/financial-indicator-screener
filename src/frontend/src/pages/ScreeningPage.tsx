@@ -32,6 +32,9 @@ export default function ScreeningPage() {
   const [limit] = createSignal(50);
   const [sortColumn, setSortColumn] = createSignal<string | null>(null);
   const [sortOrder, setSortOrder] = createSignal<SortOrder>('desc');
+  const [sortColumn2, setSortColumn2] = createSignal<string | null>(null);
+  const [sortOrder2, setSortOrder2] = createSignal<SortOrder>('desc');
+  const [showAdvancedSort, setShowAdvancedSort] = createSignal(false);
   const [metrics, setMetrics] = createSignal<MetricInfo[]>([]);
   const [timeout, setTimeout] = createSignal(false);
   const [includeSuspended, setIncludeSuspended] = createSignal(false);
@@ -104,6 +107,8 @@ export default function ScreeningPage() {
         conditions: conditions(),
         sort_by: sortColumn() || undefined,
         order: sortOrder(),
+        sort_by_2: sortColumn2() || undefined,
+        order_2: sortOrder2(),
         limit: limit(),
         page: page(),
         industries: industry().length > 0 ? industry() : undefined,
@@ -347,7 +352,56 @@ export default function ScreeningPage() {
           >
             Refresh Industries
           </button>
+
+          <button
+            type="button"
+            onClick={() => setShowAdvancedSort(!showAdvancedSort())}
+            style={{
+              padding: '0.25rem 0.5rem',
+              'border-radius': '4px',
+              border: '1px solid #1976d2',
+              background: showAdvancedSort() ? '#e3f2fd' : '#fff',
+              color: '#1976d2',
+              'font-size': '0.75rem',
+              cursor: 'pointer',
+            }}
+          >
+            {showAdvancedSort() ? 'Hide Advanced Sort' : 'Advanced Sort'}
+          </button>
         </div>
+
+        <Show when={showAdvancedSort()}>
+          <div style={{ display: 'flex', gap: '1.5rem', 'flex-wrap': 'wrap', 'align-items': 'center', 'margin-top': '1rem', 'padding-top': '1rem', 'border-top': '1px solid #eee' }}>
+            <span style={{ 'font-size': '0.875rem', 'font-weight': '500' }}>Then by:</span>
+            <select
+              value={sortColumn2() || ''}
+              onChange={(e) => setSortColumn2(e.currentTarget.value || null)}
+              style={{ padding: '0.25rem 0.5rem', 'border-radius': '4px', border: '1px solid #ccc' }}
+            >
+              <option value="">None</option>
+              <For each={metrics()}>
+                {(m) => <option value={m.id}>{m.name}</option>}
+              </For>
+            </select>
+            <Show when={sortColumn2()}>
+              <button
+                type="button"
+                onClick={() => setSortOrder2((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
+                style={{
+                  padding: '0.25rem 0.5rem',
+                  'border-radius': '4px',
+                  border: '1px solid #1976d2',
+                  background: sortOrder2() === 'asc' ? '#e3f2fd' : '#fff',
+                  color: '#1976d2',
+                  'font-size': '0.875rem',
+                  cursor: 'pointer',
+                }}
+              >
+                {sortOrder2() === 'asc' ? '↑ Asc' : '↓ Desc'}
+              </button>
+            </Show>
+          </div>
+        </Show>
       </section>
 
       <section style={{ background: 'white', padding: '1.5rem', 'border-radius': '8px', 'box-shadow': '0 1px 3px rgba(0,0,0,0.1)' }}>
