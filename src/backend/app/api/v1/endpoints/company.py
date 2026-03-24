@@ -11,6 +11,11 @@ from app.models.schemas import (
     PeerComparisonResponse,
     PeerMetric,
     IndustryClassification,
+    TrendComparisonRequest,
+    TrendComparisonResponse,
+    MetricTrendPoint,
+    MetricTrendData,
+    CompanyTrendData,
 )
 from app.utils.akshare_client import akshare_client
 
@@ -222,6 +227,56 @@ async def compare_with_peers(request: PeerComparisonRequest) -> PeerComparisonRe
         industry=industry,
         peers_count=len(peer_codes),
         metrics=metrics_result,
+    )
+
+    await redis_manager.set_json(cache_key, result.model_dump(), CACHE_TTL)
+
+    return result
+
+
+@router.post("/company/trend", response_model=TrendComparisonResponse)
+async def get_trend_comparison(request: TrendComparisonRequest) -> TrendComparisonResponse:
+    if len(request.codes) > 10:
+        raise HTTPException(status_code=400, detail="Maximum 10 companies allowed")
+    if len(request.metrics) > 2:
+        raise HTTPException(status_code=400, detail="Maximum 2 metrics for dual Y-axis")
+
+    cache_key = f"trend:{','.join(sorted(request.codes))}:{','.join(sorted(request.metrics))}:{request.period}:{request.years}"
+
+    cached_data = await redis_manager.get_json(cache_key)
+    if cached_data:
+        return TrendComparisonResponse(**cached_data)
+
+    from app.services.financial import financial_service
+
+    companies_data: list[CompanyTrendData] = []
+
+    for code in request.codes:
+        try:
+            company_info = await akshare_client.get_company_info(code)
+            name = company_info.get("股票简称", company_info.get("name", code))
+
+            time_series = await financial_service.get_company_metrics_time_series(
+                code, request.metrics, period=request.period.value, years=request.years
+            )
+
+            trends: list[MetricTrendData] = []
+            for metric in request.metrics:
+                data_points = time_series.get(metric, [])
+                trend_data = MetricTrendData(
+                    metric=metric,
+                    data=[MetricTrendPoint(date=date, value=value) for date, value in data_points],
+                )
+                trends.append(trend_data)
+
+            companies_data.append(CompanyTrendData(code=code, name=name, trends=trends))
+        except Exception:
+            continue
+
+    result = TrendComparisonResponse(
+        companies=companies_data,
+        period=request.period.value,
+        years=request.years,
     )
 
     await redis_manager.set_json(cache_key, result.model_dump(), CACHE_TTL)

@@ -6,6 +6,7 @@ import { screenCompanies, Condition, CompanyInfo, SortOrder } from '../api/scree
 import { getMetrics, MetricInfo } from '../api/metrics';
 import { getCSRCIndustries, getSWIndustries } from '../api/company';
 import TreeMap from '../components/visualization/TreeMap';
+import TrendComparisonChart from '../components/visualization/TrendComparisonChart';
 import type { IndustryClassification } from '../lib/types';
 
 const SCREEN_CONDITIONS_KEY = 'loaded_screen_conditions';
@@ -33,6 +34,8 @@ export default function ScreeningPage() {
   const [industryType, setIndustryType] = createSignal<'csrc' | 'sw1' | 'sw3'>('csrc');
   const [viewMode, setViewMode] = createSignal<'treemap' | 'table'>('treemap');
   const [selectedCompany, setSelectedCompany] = createSignal<CompanyInfo | null>(null);
+  const [selectedForComparison, setSelectedForComparison] = createSignal<CompanyInfo[]>([]);
+  const [showTrendChart, setShowTrendChart] = createSignal(false);
 
   const loadMetrics = async () => {
     try {
@@ -174,6 +177,26 @@ export default function ScreeningPage() {
 
   const handleCloseDetail = () => {
     setSelectedCompany(null);
+  };
+
+  const handleAddToComparison = (company: CompanyInfo) => {
+    const current = selectedForComparison();
+    if (current.length >= 10) {
+      window.alert('Maximum 10 companies can be compared');
+      return;
+    }
+    if (!current.find(c => c.code === company.code)) {
+      setSelectedForComparison([...current, company]);
+    }
+  };
+
+  const handleRemoveFromComparison = (code: string) => {
+    setSelectedForComparison(current => current.filter(c => c.code !== code));
+  };
+
+  const handleClearComparison = () => {
+    setSelectedForComparison([]);
+    setShowTrendChart(false);
   };
 
   const totalPages = () => Math.ceil(total() / limit());
@@ -476,9 +499,83 @@ export default function ScreeningPage() {
                     </div>
                   </div>
                 </Show>
+                <div style={{ 'margin-top': '1rem', display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleAddToComparison(selectedCompany()!);
+                      handleCloseDetail();
+                    }}
+                    disabled={selectedForComparison().length >= 10 || !!selectedForComparison().find(c => c.code === selectedCompany()!.code)}
+                    style={{
+                      padding: '0.375rem 0.75rem',
+                      'border-radius': '4px',
+                      border: '1px solid #1976d2',
+                      background: selectedForComparison().find(c => c.code === selectedCompany()!.code) ? '#e3f2fd' : '#fff',
+                      color: '#1976d2',
+                      'font-size': '0.875rem',
+                      cursor: selectedForComparison().length >= 10 ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    {selectedForComparison().find(c => c.code === selectedCompany()!.code) ? 'Added to Compare' : 'Add to Compare'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
+        </Show>
+
+        <Show when={selectedForComparison().length > 0}>
+          <div style={{ display: 'flex', 'justify-content': 'space-between', 'align-items': 'center', 'margin-top': '1rem', 'padding': '1rem', background: '#e3f2fd', 'border-radius': '8px' }}>
+            <div>
+              <span style={{ 'font-weight': '600' }}>Comparison: </span>
+              <span style={{ color: '#666' }}>{selectedForComparison().length}/10 companies selected</span>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => setShowTrendChart(!showTrendChart())}
+                style={{
+                  padding: '0.375rem 0.75rem',
+                  'border-radius': '4px',
+                  border: '1px solid #1976d2',
+                  background: showTrendChart() ? '#1976d2' : '#fff',
+                  color: showTrendChart() ? '#fff' : '#1976d2',
+                  'font-size': '0.875rem',
+                  cursor: 'pointer',
+                }}
+              >
+                {showTrendChart() ? 'Hide Trend Chart' : 'Show Trend Chart'}
+              </button>
+              <button
+                type="button"
+                onClick={handleClearComparison}
+                style={{
+                  padding: '0.375rem 0.75rem',
+                  'border-radius': '4px',
+                  border: '1px solid #ccc',
+                  background: '#fff',
+                  color: '#666',
+                  'font-size': '0.875rem',
+                  cursor: 'pointer',
+                }}
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        </Show>
+
+        <Show when={showTrendChart() && selectedForComparison().length > 0}>
+          <section style={{ background: 'white', padding: '1.5rem', 'border-radius': '8px', 'box-shadow': '0 1px 3px rgba(0,0,0,0.1)' }}>
+            <h3 style={{ margin: '0 0 1rem 0', 'font-size': '1.125rem', 'font-weight': '600' }}>
+              Trend Comparison
+            </h3>
+            <TrendComparisonChart
+              selectedCompanies={selectedForComparison()}
+              onRemoveCompany={handleRemoveFromComparison}
+            />
+          </section>
         </Show>
       </section>
     </div>

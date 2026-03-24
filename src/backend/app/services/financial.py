@@ -581,5 +581,38 @@ class FinancialService:
             return market_cap / equity
         return None
 
+    async def get_company_metrics_time_series(
+        self, code: str, metrics: list[str], period: str = "annual", years: int = 5
+    ) -> dict[str, list[tuple[str, float | None]]]:
+        indicator_data = await akshare_client.get_financial_indicator(code, period, years)
+
+        result: dict[str, list[tuple[str, float | None]]] = {}
+
+        if indicator_data and isinstance(indicator_data, dict):
+            for metric in metrics:
+                if metric in ("roe", "roi", "gross_margin", "net_profit_growth", "revenue_growth"):
+                    if metric == "roe":
+                        key = "roe" if "roe" in indicator_data else None
+                    elif metric == "roi":
+                        key = next((k for k in indicator_data.keys() if "roic" in k or "roi" in k), None)
+                    elif metric == "gross_margin":
+                        key = next((k for k in indicator_data.keys() if "gross_profit_margin" in k), None)
+                    elif metric == "net_profit_growth":
+                        key = next((k for k in indicator_data.keys() if "net_profit" in k and "grow" in k.lower()), None)
+                    elif metric == "revenue_growth":
+                        key = next((k for k in indicator_data.keys() if "revenue" in k and "grow" in k.lower()), None)
+                    else:
+                        key = None
+
+                    if key and key in indicator_data:
+                        values = indicator_data[key]
+                        result[metric] = [(str(i), float(v) if v is not None and str(v) != "nan" else None) for i, v in enumerate(values)]
+                    else:
+                        result[metric] = []
+                else:
+                    result[metric] = []
+
+        return result
+
 
 financial_service = FinancialService()

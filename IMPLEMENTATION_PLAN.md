@@ -1,6 +1,6 @@
 # Implementation Plan - A股财务指标分析应用
 
-## Status: PHASE 10-15 IN PROGRESS - CRITICAL GAPS REMAIN
+## Status: PHASE 10-12 MOSTLY COMPLETE - PHASE 13-15 REMAIN
 
 ## CRITICAL CONSTRAINT: 只使用akshare提供的数据api, 不要使用其他数据api
 
@@ -169,11 +169,11 @@
 | Exclude Industry Option | ✅ Complete | Backend supports exclude_industry; UI dropdown added |
 | Multi-industry Selection UI | ❌ Missing | No multi-select for industry filter |
 
-### Phase 12: Visualization (JTB-014, JTB-015, JTB-016) ⚠️ MOSTLY MISSING
+### Phase 12: Visualization (JTB-014, JTB-015, JTB-016) ✅ MOSTLY COMPLETE
 | Component | Status | Notes |
 |-----------|--------|-------|
 | TreeMap Component | ✅ Complete | **SPEC REQUIRED AS DEFAULT VIEW** |
-| TrendComparisonChart | ❌ Missing | Up to 10 companies, dual Y-axis, time zoom |
+| TrendComparisonChart | ✅ Complete | Backend: POST /company/trend; Frontend: TrendComparisonChart with dual Y-axis, company selection in ScreeningPage |
 | ValueSlider | ❌ Missing | Range slider with histogram |
 | IndustryHeatmap | ❌ Missing | Industry distribution heatmap |
 | ConditionTree visualization | ❌ Missing | Graphical condition structure diagram |
@@ -232,7 +232,7 @@
 
 ### Phase 12: Visualization (JTB-014, JTB-015, JTB-016) - HIGH PRIORITY
 - [x] **Create TreeMap component** - SPEC SAYS DEFAULT VIEW, MUST IMPLEMENT
-- [ ] Create TrendComparisonChart (up to 10 companies, dual Y-axis)
+- [x] Create TrendComparisonChart (up to 10 companies, dual Y-axis) - Backend: `get_company_metrics_time_series` in financial.py, POST /company/trend; Frontend: TrendComparisonChart component
 - [ ] Create ConditionTree visualization
 - [ ] Create ValueSlider with histogram
 - [ ] Create IndustryHeatmap
