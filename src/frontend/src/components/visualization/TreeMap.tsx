@@ -79,70 +79,142 @@ const TreeMap: Component<TreeMapProps> = (props) => {
     if (totalValue === 0) return [];
 
     const { width, height } = containerSize();
-    const rects: TreemapRect[] = [];
+    const min = minValue();
+    const max = maxValue();
 
-    let currentX = 0;
-    let currentY = 0;
-    let remainingWidth = width;
-    let remainingHeight = height;
-    let isHorizontal = width >= height;
+    const items = companies.map((company, index) => ({
+      company,
+      value: values[index],
+      normalizedValue: values[index] / totalValue,
+    }));
 
-    companies.forEach((company, index) => {
-      const value = values[index];
-      const ratio = value / totalValue;
-      const incomplete = (company.available_years ?? 0) < 5;
+    return squarify(items, 0, 0, width, height, min, max);
+  });
 
-      let rectWidth: number;
-      let rectHeight: number;
+  const squarify = (
+    items: { company: CompanyInfo; value: number; normalizedValue: number }[],
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    min: number,
+    max: number
+  ): TreemapRect[] => {
+    if (items.length === 0) return [];
+    if (width <= 0 || height <= 0) return [];
 
-      if (isHorizontal) {
-        rectWidth = remainingWidth * ratio;
-        rectHeight = height;
-        rects.push({
-          company,
-          value,
-          x: currentX,
-          y: currentY,
-          width: rectWidth - 2,
-          height: rectHeight - 2,
-          color: getColor(value, minValue(), maxValue()),
-          incomplete,
-        });
-        currentX += rectWidth;
-        remainingWidth -= rectWidth;
-      } else {
-        rectWidth = width;
-        rectHeight = remainingHeight * ratio;
-        rects.push({
-          company,
-          value,
-          x: currentX,
-          y: currentY,
-          width: rectWidth - 2,
-          height: rectHeight - 2,
-          color: getColor(value, minValue(), maxValue()),
-          incomplete,
-        });
-        currentY += rectHeight;
-        remainingHeight -= rectHeight;
-      }
+    const isHorizontal = width >= height;
+    const shortSide = isHorizontal ? height : width;
+    const longSide = isHorizontal ? width : height;
 
-      if (index % 3 === 2) {
-        isHorizontal = !isHorizontal;
-        if (isHorizontal) {
-          currentX = 0;
-          currentY = 0;
-          remainingWidth = width;
+    const totalNormalized = items.reduce((sum, item) => sum + item.normalizedValue, 0);
+    if (totalNormalized === 0) return [];
+
+    const row: typeof items = [];
+    let best: TreemapRect[] = [];
+    let bestWorstRatio = Infinity;
+
+    for (let i = 0; i < items.length; i++) {
+      row.push(items[i]);
+      const rowRects = layoutRow(row, x, y, shortSide, longSide, isHorizontal, min, max);
+
+      if (rowRects.length > 0) {
+        const worstRatio = getWorstAspectRatio(rowRects, shortSide, longSide, isHorizontal);
+        if (worstRatio <= bestWorstRatio) {
+          best = rowRects;
+          bestWorstRatio = worstRatio;
         } else {
-          currentX = 0;
-          currentY = 0;
-          remainingHeight = height;
+          row.pop();
+          break;
         }
       }
-    });
+    }
+
+    if (row.length === 0) return [];
+
+    const rowNormalized = row.reduce((sum, item) => sum + item.normalizedValue, 0);
+    const rowSize = (rowNormalized / totalNormalized) * (isHorizontal ? height : width);
+
+    let remainingX = x;
+    let remainingY = y;
+    let remainingWidth = width;
+    let remainingHeight = height;
+
+    if (isHorizontal) {
+      remainingY += rowSize;
+      remainingHeight -= rowSize;
+    } else {
+      remainingX += rowSize;
+      remainingWidth -= rowSize;
+    }
+
+    const remainingItems = items.slice(row.length);
+    const remainingRects = squarify(remainingItems, remainingX, remainingY, remainingWidth, remainingHeight, min, max);
+
+    return [...best, ...remainingRects];
+  };
+
+  const layoutRow = (
+    row: { company: CompanyInfo; value: number; normalizedValue: number }[],
+    x: number,
+    y: number,
+    shortSide: number,
+    longSide: number,
+    isHorizontal: boolean,
+    min: number,
+    max: number
+  ): TreemapRect[] => {
+    if (row.length === 0) return [];
+
+    const totalNormalized = row.reduce((sum, item) => sum + item.normalizedValue, 0);
+    if (totalNormalized === 0) return [];
+
+    const rowSize = shortSide * totalNormalized;
+    const rowLongSide = rowSize / shortSide;
+
+    const rects: TreemapRect[] = [];
+    let offset = 0;
+
+    for (const item of row) {
+      const itemSize = (item.normalizedValue / totalNormalized) * shortSide;
+      const rectWidth = isHorizontal ? rowLongSide - 2 : itemSize - 2;
+      const rectHeight = isHorizontal ? itemSize - 2 : rowLongSide - 2;
+      const rectX = isHorizontal ? x : y + offset;
+      const rectY = isHorizontal ? y + offset : x;
+
+      rects.push({
+        company: item.company,
+        value: item.value,
+        x: isHorizontal ? rectX : rectY,
+        y: isHorizontal ? rectY : rectX,
+        width: rectWidth,
+        height: rectHeight,
+        color: getColor(item.value, min, max),
+        incomplete: (item.company.available_years ?? 0) < 5,
+      });
+
+      offset += itemSize;
+    }
 
     return rects;
-  });
+  };
+
+  const getWorstAspectRatio = (
+    rects: TreemapRect[],
+    shortSide: number,
+    longSide: number,
+    isHorizontal: boolean
+  ): number => {
+    let worst = 0;
+    for (const rect of rects) {
+      const short = isHorizontal ? rect.height : rect.width;
+      const long = isHorizontal ? rect.width : rect.height;
+      if (short <= 0 || long <= 0) continue;
+      const ratio = Math.max(short / long, long / short);
+      worst = Math.max(worst, ratio);
+    }
+    return worst;
+  };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let containerRef: any;

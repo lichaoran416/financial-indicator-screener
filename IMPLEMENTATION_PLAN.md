@@ -1,6 +1,6 @@
 # Implementation Plan - A股财务指标分析应用
 
-## Status: v0.5.7 - GAP-F7 FormulaEditor evaluation and GAP-F8 Pagination input completed
+## Status: v0.5.8 - GAP-F5 squarified TreeMap, GAP-F7 FormulaEditor evaluation, GAP-F8 Pagination input completed
 
 ## CRITICAL CONSTRAINT: 只使用akshare提供的数据api, 不要使用其他数据api
 
@@ -35,7 +35,7 @@
 - [x] **GAP-F2** `OperatorSelector.tsx:43` - ~~Duplicate import `from 'solid-js'`~~ **VERIFIED NOT A BUG**: Only one import exists
 - [x] **GAP-F3** `ConditionTree.tsx:193` - Shows "Unknown metric" when formula is used instead of metric (should check `condition.formula` as fallback) [FIXED]
 - [x] **GAP-F4** `ExportButton.tsx:13-19` - CSV export only includes company info (Code, Name, Industry, Status, Risk Flag), does NOT include calculated metrics or available_years [FIXED]
-- [ ] **GAP-F5** `TreeMap.tsx:90-142` - Uses simple slice-and-dice algorithm instead of proper squarified treemap
+- [x] **GAP-F5** `TreeMap.tsx:90-142` - Uses simple slice-and-dice algorithm instead of proper squarified treemap [FIXED: Implemented squarified treemap algorithm with proper aspect ratios]
 - [x] **GAP-F6** `TrendComparisonChart.tsx:155-161` - Time range selector is cosmetic only; always fetches 5 years regardless of selection [FIXED: Now uses yearsMap[timeRange()] to fetch correct years]
 - [x] **GAP-F7** `FormulaEditor.tsx:204-212` - Shows raw formula preview, not actual calculated result. `evaluateFormula` API exists but is never called [FIXED: FormulaEditor now calls evaluateFormula with sample company metrics and displays the calculated result]
 - [x] **GAP-F8** `Pagination.tsx` - No direct page number input (only Previous/Next/ellipsis buttons) [FIXED: Added page number input field with validation and Go button]
@@ -96,7 +96,7 @@
 - [x] JTB-013 Industry selection UI
 
 ### Visualization
-- [x] JTB-014 TreeMap component (but uses non-optimal slice-and-dice algorithm - GAP-F5)
+- [x] JTB-014 TreeMap component (now uses proper squarified treemap algorithm - GAP-F5 FIXED)
 - [x] JTB-015 TrendComparisonChart with dual Y-axis
 - [x] JTB-016 ConditionTree component
 - [x] JTB-016 IndustryHeatmap component
@@ -273,6 +273,7 @@ key=lambda x: x.get("metrics", {}).get(sort_by) or 0
 ### GAP-F5: Non-Squarified TreeMap
 **Location**: `src/frontend/src/components/visualization/TreeMap.tsx:90-142`
 **Issue**: Uses simple horizontal/vertical strip alternation (slice-and-dice) instead of proper squarified algorithm for better aspect ratios.
+**Status**: [x] FIXED - Implemented proper squarified treemap algorithm with `squarify()`, `layoutRow()`, and `getWorstAspectRatio()` functions. The new algorithm creates rectangles with better aspect ratios by iteratively building rows and choosing the best layout.
 
 ### GAP-F6: Cosmetic Time Range Selector
 **Location**: `src/frontend/src/components/visualization/TrendComparisonChart.tsx:155-161`
@@ -359,7 +360,7 @@ npm run lint
 - [x] Fix frontend type inconsistencies (GAP-F1) - Unified Condition type across api/screen.ts, stores/screeningStore.ts, lib/types.ts
 - [x] Show formula name in ConditionTree for formula conditions (GAP-F3) - condition.metric || condition.formula
 - [x] Include calculated metrics in CSV export (GAP-F4) - ExportButton now exports available_years and metrics
-- [ ] Implement squarified TreeMap algorithm (GAP-F5)
+- [x] Implement squarified TreeMap algorithm (GAP-F5) - Now uses proper squarified treemap with good aspect ratios
 - [x] Make time range selector functional (GAP-F6) - Now uses yearsMap[timeRange()] to fetch correct years
 - [x] Show formula calculation result in FormulaEditor (GAP-F7) - FormulaEditor now calls evaluateFormula with sample company metrics and displays result
 - [x] Add direct page number input to pagination (GAP-F8) - Added page number input field with validation, error display, and Enter key support
