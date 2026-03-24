@@ -1,5 +1,5 @@
 import { For, Show } from 'solid-js';
-import { Condition, Period } from '../../api/screen';
+import { Condition, Period, CompanyInfo } from '../../api/screen';
 import ConditionRow from './ConditionRow';
 import LogicToggle from './LogicToggle';
 
@@ -8,6 +8,7 @@ type Logic = 'and' | 'or';
 interface ConditionBuilderProps {
   conditions: Condition[];
   logic: Logic;
+  companies?: CompanyInfo[];
   onAdd: () => void;
   onUpdate: (index: number, condition: Condition) => void;
   onRemove: (index: number) => void;
@@ -43,6 +44,7 @@ export default function ConditionBuilder(props: ConditionBuilderProps) {
           {(condition, index) => (
             <ConditionRow
               condition={condition}
+              companies={props.companies}
               onUpdate={(updated) => props.onUpdate(index(), updated)}
               onDelete={() => props.onRemove(index())}
             />

@@ -1,10 +1,11 @@
-import { Condition, Period } from '../../api/screen';
+import { Condition, Period, CompanyInfo } from '../../api/screen';
 import MetricDropdown from './MetricDropdown';
 import OperatorSelector from './OperatorSelector';
 import ValueInput from './ValueInput';
 
 interface ConditionRowProps {
   condition: Condition;
+  companies?: CompanyInfo[];
   onUpdate: (condition: Condition) => void;
   onDelete: () => void;
 }
@@ -58,6 +59,8 @@ export default function ConditionRow(props: ConditionRowProps) {
         value={props.condition.value}
         value2={props.condition.value2}
         operator={props.condition.operator}
+        companies={props.companies}
+        metricName={props.condition.metric}
         onChange={handleValueChange}
       />
       <div style={{ display: 'flex', 'flex-direction': 'column', gap: '0.25rem' }}>

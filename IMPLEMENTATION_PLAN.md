@@ -174,7 +174,7 @@
 |-----------|--------|-------|
 | TreeMap Component | ✅ Complete | **SPEC REQUIRED AS DEFAULT VIEW** |
 | TrendComparisonChart | ✅ Complete | Backend: POST /company/trend; Frontend: TrendComparisonChart with dual Y-axis, company selection in ScreeningPage |
-| ValueSlider | ❌ Missing | Range slider with histogram |
+| ValueSlider | ✅ Complete | Range slider with histogram - shows distribution and percentiles, integrated with ValueInput for "between" operator |
 | IndustryHeatmap | ❌ Missing | Industry distribution heatmap |
 | ConditionTree visualization | ❌ Missing | Graphical condition structure diagram |
 | Time-Series Line Chart | ❌ Missing | Historical metric trends |
@@ -233,8 +233,8 @@
 ### Phase 12: Visualization (JTB-014, JTB-015, JTB-016) - HIGH PRIORITY
 - [x] **Create TreeMap component** - SPEC SAYS DEFAULT VIEW, MUST IMPLEMENT
 - [x] Create TrendComparisonChart (up to 10 companies, dual Y-axis) - Backend: `get_company_metrics_time_series` in financial.py, POST /company/trend; Frontend: TrendComparisonChart component
+- [x] Create ValueSlider with histogram - shows value distribution, percentiles (P25/P50/P75), quick range presets
 - [ ] Create ConditionTree visualization
-- [ ] Create ValueSlider with histogram
 - [ ] Create IndustryHeatmap
 - [ ] Create Time-Series Line Chart for historical metric trends
 - [ ] Create Multi-Company Comparison feature

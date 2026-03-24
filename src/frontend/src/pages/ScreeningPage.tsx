@@ -207,6 +207,7 @@ export default function ScreeningPage() {
         <ConditionBuilder
           conditions={conditions()}
           logic={logic()}
+          companies={companies()}
           onAdd={handleAddCondition}
           onUpdate={handleUpdateCondition}
           onRemove={handleRemoveCondition}
