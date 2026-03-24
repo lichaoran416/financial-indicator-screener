@@ -1,6 +1,6 @@
 # Implementation Plan - A股财务指标分析应用
 
-## Status: v0.5.11 - Documentation Updated: specs/05_backend.md with all API endpoints, specs/03_technical_architecture.md with correct paths and formula engine, specs/09_industry_comparison.md with THS classification, specs/02_data_source.md with actual akshare functions
+## Status: v0.5.12 - NEW-5 FIXED: Export button now fetches all pages (up to 100) before exporting CSV
 
 ## CRITICAL CONSTRAINT: 只使用akshare提供的数据api, 不要使用其他数据api
 
@@ -55,7 +55,7 @@
 - [ ] **NEW-2** `track_duration` decorator defined in `logging.py:265-290` but no functions use `@track_duration`
 - [ ] **NEW-3** `formula_service.py` has race condition potential - non-atomic read-modify-write pattern for save/update/delete
 - [x] **NEW-4** CACHE_TTL duplicated in `company.py:24` and `financial.py:10` (both hardcode 86400 instead of using `settings.CACHE_TTL`) [FIXED: Replaced with settings.CACHE_TTL in both files]
-- [ ] **NEW-5** Export limited to current page only - cannot export all pages
+- [x] **NEW-5** Export limited to current page only - cannot export all pages [FIXED: ExportButton now fetches all pages (up to 100 pages) before exporting]
 - [ ] **NEW-6** `TrendComparisonChart.tsx:73-78` - Financial report date annotations are hardcoded placeholders (Q1 on 04-30, Q2 on 08-31) not actual company-specific release dates
 - [x] **NEW-7** THS industry classification implemented but not documented in specs/09_industry_comparison.md [FIXED: Documented in specs]
 - [x] **NEW-8** `akshare_client.py` - Data source discrepancy: spec says `stock_financial_report_sina` but code uses `stock_profit_sheet_by_report_em` for income data [FIXED: Updated specs/02_data_source.md]
@@ -139,6 +139,9 @@
 - [x] CSRC 3-level hierarchy (门类/大类/中类) via stock_industry_category_cninfo
 - [x] THS industry classification via get_industry_ths()
 - [x] Shenwan industry classification (SW) via stock_industry_sw()
+
+### Export Functionality
+- [x] JTB-017 CSV export of screening results - ExportButton exports all pages (up to 100 pages/10000 companies) with calculated metrics and available_years
 
 ---
 

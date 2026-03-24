@@ -1,8 +1,8 @@
-import { createSignal, createEffect, onMount, Show, For } from 'solid-js';
+import { createSignal, createEffect, createMemo, onMount, Show, For } from 'solid-js';
 import { ConditionBuilder, defaultCondition } from '../components/condition';
 import { ResultsTable, Pagination, ExportButton } from '../components/results';
 import { LoadingSpinner, ErrorState, EmptyState, TimeoutState } from '../components/common';
-import { screenCompanies, saveScreen, Condition, SortOrder } from '../api/screen';
+import { screenCompanies, saveScreen, Condition, SortOrder, ScreenRequest } from '../api/screen';
 import type { CompanyInfo } from '../api/screen';
 import { getMetrics, MetricInfo } from '../api/metrics';
 import { getCSRCIndustries, getSWIndustries } from '../api/company';
@@ -49,6 +49,21 @@ export default function ScreeningPage() {
   const [selectedCompany, setSelectedCompany] = createSignal<CompanyInfo | null>(null);
   const [selectedForComparison, setSelectedForComparison] = createSignal<CompanyInfo[]>([]);
   const [showTrendChart, setShowTrendChart] = createSignal(false);
+
+  const screenRequest = createMemo<Omit<ScreenRequest, 'page' | 'limit'>>(() => ({
+    conditions: conditions(),
+    logic: logic(),
+    sort_by: sortColumn() || undefined,
+    order: sortOrder(),
+    sort_by_2: sortColumn2() || undefined,
+    order_2: sortOrder2(),
+    industries: industry().length > 0 ? industry() : undefined,
+    exclude_industries: excludeIndustry().length > 0 ? excludeIndustry() : undefined,
+    include_suspended: includeSuspended(),
+    profit_only: profitOnly(),
+    include_st: includeSt(),
+    require_complete_data: requireCompleteData(),
+  }));
 
   const loadMetrics = async () => {
     try {
@@ -439,7 +454,7 @@ export default function ScreeningPage() {
             Results {total() > 0 && <span style={{ 'font-weight': 'normal', color: '#666' }}>({total()} companies)</span>}
           </h2>
           <Show when={companies().length > 0}>
-            <ExportButton companies={companies()} conditions={conditions()} />
+            <ExportButton companies={companies()} conditions={conditions()} screenRequest={screenRequest()} />
           </Show>
         </div>
 
