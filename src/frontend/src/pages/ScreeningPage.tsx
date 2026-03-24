@@ -2,12 +2,20 @@ import { createSignal, createEffect, onMount, Show, For } from 'solid-js';
 import { ConditionBuilder, defaultCondition } from '../components/condition';
 import { ResultsTable, Pagination, ExportButton } from '../components/results';
 import { LoadingSpinner, ErrorState, EmptyState, TimeoutState } from '../components/common';
-import { screenCompanies, Condition, CompanyInfo, SortOrder } from '../api/screen';
+import { screenCompanies, Condition, SortOrder } from '../api/screen';
+import type { CompanyInfo } from '../api/screen';
 import { getMetrics, MetricInfo } from '../api/metrics';
 import { getCSRCIndustries, getSWIndustries } from '../api/company';
 import TreeMap from '../components/visualization/TreeMap';
 import TrendComparisonChart from '../components/visualization/TrendComparisonChart';
 import type { IndustryClassification } from '../lib/types';
+
+const riskWarnings: Record<CompanyInfo['risk_flag'], string> = {
+  NORMAL: '',
+  ST: 'Special Treatment - Company has reported financial irregularities or losses. Exercise caution.',
+  STAR_ST: 'Star Special Treatment - Company is in severe financial distress. High risk.',
+  DELISTING_RISK: 'At risk of delisting - Company may be removed from the exchange. Extremely high risk.',
+};
 
 const SCREEN_CONDITIONS_KEY = 'loaded_screen_conditions';
 
@@ -489,6 +497,11 @@ export default function ScreeningPage() {
               <div style={{ 'font-size': '0.875rem', color: '#333' }}>
                 <p><strong>Status:</strong> {selectedCompany()!.status}</p>
                 <p><strong>Risk Flag:</strong> {selectedCompany()!.risk_flag}</p>
+                <Show when={riskWarnings[selectedCompany()!.risk_flag]}>
+                  <p style={{ color: '#dc2626', 'font-size': '0.875rem', 'margin-top': '0.25rem' }}>
+                    {riskWarnings[selectedCompany()!.risk_flag]}
+                  </p>
+                </Show>
                 <Show when={selectedCompany()!.metrics && Object.keys(selectedCompany()!.metrics!).length > 0}>
                   <div style={{ 'margin-top': '1rem' }}>
                     <strong>Metrics:</strong>

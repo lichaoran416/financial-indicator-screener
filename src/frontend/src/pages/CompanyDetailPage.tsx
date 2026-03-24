@@ -33,6 +33,13 @@ const riskColors: Record<string, string> = {
   DELISTING_RISK: '#ff5722',
 };
 
+const riskWarnings: Record<string, string> = {
+  NORMAL: '',
+  ST: 'Special Treatment - Company has reported financial irregularities or losses. Exercise caution.',
+  STAR_ST: 'Star Special Treatment - Company is in severe financial distress. High risk.',
+  DELISTING_RISK: 'At risk of delisting - Company may be removed from the exchange. Extremely high risk.',
+};
+
 export default function CompanyDetailPage() {
   const params = useParams<{ code: string }>();
   const [company, setCompany] = createSignal<CompanyDetailResponse | null>(null);
@@ -219,6 +226,11 @@ export default function CompanyDetailPage() {
               >
                 {riskLabels[company()!.risk_flag]}
               </span>
+              <Show when={riskWarnings[company()!.risk_flag]}>
+                <span style={{ 'font-size': '0.75rem', color: riskColors[company()!.risk_flag] }}>
+                  {riskWarnings[company()!.risk_flag]}
+                </span>
+              </Show>
             </div>
           </div>
         </section>

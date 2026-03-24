@@ -1,4 +1,4 @@
-import { Component } from 'solid-js';
+import { Component, Show } from 'solid-js';
 import { CompanyInfo } from '../../api/screen';
 import styles from './TableRow.module.css';
 
@@ -17,6 +17,13 @@ const riskColors: Record<CompanyInfo['risk_flag'], string> = {
   ST: '#f59e0b',
   STAR_ST: '#ef4444',
   DELISTING_RISK: '#dc2626',
+};
+
+const riskWarnings: Record<CompanyInfo['risk_flag'], string> = {
+  NORMAL: '',
+  ST: 'Special Treatment - Company has reported financial irregularities or losses. Exercise caution.',
+  STAR_ST: 'Star Special Treatment - Company is in severe financial distress. High risk.',
+  DELISTING_RISK: 'At risk of delisting - Company may be removed from the exchange. Extremely high risk.',
 };
 
 const TableRow: Component<TableRowProps> = (props) => {
@@ -38,12 +45,19 @@ const TableRow: Component<TableRowProps> = (props) => {
         </span>
       </td>
       <td>
-        <span
-          class={styles.badge}
-          style={{ color: riskColors[props.company.risk_flag] }}
-        >
-          {props.company.risk_flag.replace('_', ' ')}
-        </span>
+        <div style={{ display: 'flex', 'flex-direction': 'column', gap: '0.25rem' }}>
+          <span
+            class={styles.badge}
+            style={{ color: riskColors[props.company.risk_flag] }}
+          >
+            {props.company.risk_flag.replace('_', ' ')}
+          </span>
+          <Show when={riskWarnings[props.company.risk_flag]}>
+            <span style={{ 'font-size': '0.75rem', color: riskColors[props.company.risk_flag] }}>
+              {riskWarnings[props.company.risk_flag]}
+            </span>
+          </Show>
+        </div>
       </td>
     </tr>
   );

@@ -189,7 +189,7 @@
 | Component | Status | Notes |
 |-----------|--------|-------|
 | ROE N/A when profit negative | ✅ Complete | Verified in financial.py |
-| Risk warning text messages | ❌ Missing | Only badges, no warning text |
+| Risk warning text messages | ✅ Complete | Warning text added to TableRow, ScreeningPage modal, and CompanyDetailPage |
 | Mark missing years in results | ❌ Missing | Years not marked |
 
 ### Phase 15: UX & Performance
