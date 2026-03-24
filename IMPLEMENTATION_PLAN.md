@@ -85,6 +85,11 @@
 - **Issue**: `metrics` field added to company dict but dropped during Pydantic validation because CompanyInfo didn't have metrics field
 - **Fix**: Added `metrics: dict` field to CompanyInfo model in schemas.py
 
+### Bug 11: Redis Manager Not Connected (CRITICAL) ✅ VERIFIED FIXED
+- **Location**: `src/backend/main.py:12-13`
+- **Issue**: The `redis_manager._client` was never initialized. The `app.state.redis` created in the lifespan context manager was separate from `redis_manager._client`, causing all cached endpoints to fail with "Redis not connected" error.
+- **Fix**: Added `redis_manager._client = app.state.redis` in the lifespan handler to properly connect the Redis client to the singleton redis_manager.
+
 ---
 
 ## ROI FORMULA BUG ✅ VERIFIED FIXED

@@ -5,11 +5,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
+from app.core.redis import redis_manager
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.redis = redis.Redis(host="localhost", port=6379, decode_responses=True)
+    redis_manager._client = app.state.redis
     yield
     await app.state.redis.close()
 
