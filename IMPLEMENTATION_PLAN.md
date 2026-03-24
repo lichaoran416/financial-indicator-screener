@@ -37,7 +37,7 @@
 - [x] **GAP-F4** `ExportButton.tsx:13-19` - CSV export only includes company info (Code, Name, Industry, Status, Risk Flag), does NOT include calculated metrics or available_years [FIXED]
 - [ ] **GAP-F5** `TreeMap.tsx:90-142` - Uses simple slice-and-dice algorithm instead of proper squarified treemap
 - [x] **GAP-F6** `TrendComparisonChart.tsx:155-161` - Time range selector is cosmetic only; always fetches 5 years regardless of selection [FIXED: Now uses yearsMap[timeRange()] to fetch correct years]
-- [ ] **GAP-F7** `FormulaEditor.tsx:204-212` - Shows raw formula preview, not actual calculated result. `evaluateFormula` API exists but is never called
+- [x] **GAP-F7** `FormulaEditor.tsx:204-212` - Shows raw formula preview, not actual calculated result. `evaluateFormula` API exists but is never called [FIXED: FormulaEditor now calls evaluateFormula with sample company metrics and displays the calculated result]
 - [ ] **GAP-F8** `Pagination.tsx` - No direct page number input (only Previous/Next/ellipsis buttons)
 - [x] **GAP-F9** `metrics.py:7-17` - Hardcoded English metric names instead of Chinese names from `FinancialService.METRIC_DEFINITIONS` (FIXED: Now uses Chinese names from METRIC_DEFINITIONS)
 
@@ -289,6 +289,7 @@ const response = await apiClient.post('/company/trend', {
 ### GAP-F7: FormulaEditor Shows Preview Not Calculated Result
 **Location**: `src/frontend/src/components/condition/FormulaEditor.tsx:204-212`
 **Issue**: Shows raw formula text, not actual computed result. `evaluateFormula` API exists but is never called in frontend.
+**Status**: [x] FIXED - FormulaEditor now imports `evaluateFormula`, accepts `companies` prop, calls evaluateFormula after successful validation using the first company's metrics, and displays the calculated result in the preview section. Also updated ConditionRow to pass companies to FormulaEditor.
 
 ---
 
@@ -360,7 +361,7 @@ npm run lint
 - [x] Include calculated metrics in CSV export (GAP-F4) - ExportButton now exports available_years and metrics
 - [ ] Implement squarified TreeMap algorithm (GAP-F5)
 - [x] Make time range selector functional (GAP-F6) - Now uses yearsMap[timeRange()] to fetch correct years
-- [ ] Show formula calculation result in FormulaEditor (GAP-F7)
+- [x] Show formula calculation result in FormulaEditor (GAP-F7) - FormulaEditor now calls evaluateFormula with sample company metrics and displays result
 - [ ] Add direct page number input to pagination (GAP-F8)
 - [x] Use Chinese metric names from METRIC_DEFINITIONS (GAP-F9) - metrics.py now uses Chinese names
 - [ ] Add missing test coverage

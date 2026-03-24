@@ -114,6 +114,7 @@ export default function ConditionRow(props: ConditionRowProps) {
         <FormulaEditor
           value={props.condition.formula || ''}
           onChange={handleFormulaChange}
+          companies={props.companies}
         />
       </Show>
 

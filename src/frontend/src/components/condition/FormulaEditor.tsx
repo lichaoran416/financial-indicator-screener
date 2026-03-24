@@ -1,16 +1,19 @@
 import { createSignal, createResource, For, Show } from 'solid-js';
-import { validateFormula, FormulaValidationResponse } from '../../api/formula';
+import { validateFormula, evaluateFormula, FormulaValidationResponse, FormulaEvaluationResponse } from '../../api/formula';
 import { getMetrics, MetricInfo } from '../../api/metrics';
+import { CompanyInfo } from '../../api/screen';
 
 interface FormulaEditorProps {
   value: string;
   onChange: (formula: string) => void;
   onSave?: (name: string, formula: string, description: string) => void;
+  companies?: CompanyInfo[];
 }
 
 export default function FormulaEditor(props: FormulaEditorProps) {
   const [formula, setFormula] = createSignal(props.value || '');
   const [validationResult, setValidationResult] = createSignal<FormulaValidationResponse | null>(null);
+  const [evaluationResult, setEvaluationResult] = createSignal<FormulaEvaluationResponse | null>(null);
   const [isValidating, setIsValidating] = createSignal(false);
   const [showSaveDialog, setShowSaveDialog] = createSignal(false);
   const [formulaName, setFormulaName] = createSignal('');
@@ -19,6 +22,16 @@ export default function FormulaEditor(props: FormulaEditorProps) {
   const [metrics] = createResource(getMetrics);
 
   let validateTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  const getSampleMetrics = (): Record<string, number> => {
+    if (props.companies && props.companies.length > 0) {
+      const firstCompany = props.companies[0];
+      if (firstCompany.metrics) {
+        return firstCompany.metrics;
+      }
+    }
+    return {};
+  };
 
   const handleFormulaChange = (newFormula: string) => {
     setFormula(newFormula);
@@ -30,14 +43,27 @@ export default function FormulaEditor(props: FormulaEditorProps) {
 
     if (!newFormula.trim()) {
       setValidationResult(null);
+      setEvaluationResult(null);
       return;
     }
 
     validateTimeout = setTimeout(async () => {
       setIsValidating(true);
+      setEvaluationResult(null);
       try {
         const result = await validateFormula(newFormula);
         setValidationResult(result);
+        if (result.valid) {
+          const sampleMetrics = getSampleMetrics();
+          if (Object.keys(sampleMetrics).length > 0) {
+            try {
+              const evalResult = await evaluateFormula(newFormula, sampleMetrics);
+              setEvaluationResult(evalResult);
+            } catch (e) {
+              setEvaluationResult({ success: false, error: 'Evaluation failed' });
+            }
+          }
+        }
       } catch (e) {
         setValidationResult({ valid: false, error: 'Validation failed' });
       } finally {
@@ -208,7 +234,22 @@ export default function FormulaEditor(props: FormulaEditorProps) {
           background: validationResult()?.valid ? '#dcfce7' : '#fee2e2',
           'font-size': '0.75rem',
         }}>
-          <strong>Preview:</strong> {formula()}
+          <strong>Formula:</strong> {formula()}
+          <Show when={validationResult()?.valid && evaluationResult()?.success}>
+            <div style={{ 'margin-top': '0.25rem', color: '#16a34a' }}>
+              <strong>Result:</strong> {evaluationResult()?.result?.toFixed(4)}
+            </div>
+          </Show>
+          <Show when={validationResult()?.valid && evaluationResult() && !evaluationResult()?.success}>
+            <div style={{ 'margin-top': '0.25rem', color: '#dc2626' }}>
+              <strong>Evaluation:</strong> {evaluationResult()?.error || 'Cannot evaluate'}
+            </div>
+          </Show>
+          <Show when={validationResult()?.valid && !evaluationResult() && Object.keys(getSampleMetrics()).length === 0}>
+            <div style={{ 'margin-top': '0.25rem', color: '#666' }}>
+              <em>No sample data available for evaluation</em>
+            </div>
+          </Show>
         </div>
       </Show>
 
