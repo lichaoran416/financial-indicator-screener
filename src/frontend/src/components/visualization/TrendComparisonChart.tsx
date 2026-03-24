@@ -1,4 +1,4 @@
-import { Component, createEffect, onCleanup, createSignal, For, Show } from 'solid-js';
+import { Component, createEffect, onCleanup, createSignal, For, Show, createMemo } from 'solid-js';
 import {
   Chart,
   LineController,
@@ -11,6 +11,7 @@ import {
   Legend,
   Filler,
   ChartDataset,
+  ChartOptions,
 } from 'chart.js';
 import apiClient from '../../api/client';
 import type { CompanyInfo } from '../../api/screen';
@@ -54,6 +55,8 @@ interface TrendComparisonChartProps {
   onRemoveCompany: (code: string) => void;
 }
 
+type TimeRange = '1Y' | '3Y' | '5Y' | 'ALL';
+
 const TREND_COLORS = [
   { bg: 'rgba(25, 118, 210, 0.1)', border: 'rgba(25, 118, 210, 1)' },
   { bg: 'rgba(76, 175, 80, 0.1)', border: 'rgba(76, 175, 80, 1)' },
@@ -67,6 +70,13 @@ const TREND_COLORS = [
   { bg: 'rgba(33, 150, 243, 0.1)', border: 'rgba(33, 150, 243, 1)' },
 ];
 
+const FINANCIAL_REPORT_ANNOTATIONS: Record<string, { label: string; color: string }> = {
+  '04-30': { label: 'Q1', color: 'rgba(76, 175, 80, 0.5)' },
+  '08-31': { label: 'Q2', color: 'rgba(255, 152, 0, 0.5)' },
+  '10-31': { label: 'Q3', color: 'rgba(255, 193, 7, 0.5)' },
+  '03-31': { label: 'Q4', color: 'rgba(244, 67, 54, 0.5)' },
+};
+
 export const TrendComparisonChart: Component<TrendComparisonChartProps> = (props) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let canvasRef: any;
@@ -76,6 +86,61 @@ export const TrendComparisonChart: Component<TrendComparisonChartProps> = (props
   const [error, setError] = createSignal<string | null>(null);
   const [leftMetric, setLeftMetric] = createSignal<string>('roe');
   const [rightMetric, setRightMetric] = createSignal<string>('roi');
+  const [timeRange, setTimeRange] = createSignal<TimeRange>('ALL');
+
+  const availableMetrics = ['roe', 'roi', 'gross_margin', 'net_profit_growth', 'revenue_growth', 'debt_ratio', 'current_ratio'];
+
+  const allDates = createMemo(() => {
+    const data = trendData();
+    if (!data) return [];
+    const labels = new Set<string>();
+    data.companies.forEach((company) => {
+      company.trends.forEach((trend) => {
+        if (trend.metric === leftMetric() || trend.metric === rightMetric()) {
+          trend.data.forEach((point) => {
+            if (point.value !== null) {
+              labels.add(point.date);
+            }
+          });
+        }
+      });
+    });
+    return Array.from(labels).sort();
+  });
+
+  const filteredDates = createMemo(() => {
+    const dates = allDates();
+    if (dates.length === 0) return [];
+
+    const yearsMap: Record<TimeRange, number> = {
+      '1Y': 1,
+      '3Y': 3,
+      '5Y': 5,
+      'ALL': 999,
+    };
+
+    const maxYears = yearsMap[timeRange()];
+    const cutoffYear = new Date().getFullYear() - maxYears;
+
+    if (maxYears >= 999) return dates;
+
+    return dates.filter((date) => {
+      const year = parseInt(date.substring(0, 4), 10);
+      return year >= cutoffYear;
+    });
+  });
+
+  const reportDateIndices = createMemo(() => {
+    const indices: number[] = [];
+    const dates = filteredDates();
+    dates.forEach((date, idx) => {
+      const monthDay = date.substring(5);
+      if (FINANCIAL_REPORT_ANNOTATIONS[monthDay]) {
+        indices.push(idx);
+      }
+    });
+    return indices;
+  });
 
   const fetchTrendData = async () => {
     if (props.selectedCompanies.length === 0) {
@@ -115,21 +180,9 @@ export const TrendComparisonChart: Component<TrendComparisonChartProps> = (props
 
     const leftMetricData = leftMetric();
     const rightMetricData = rightMetric();
+    const displayDates = filteredDates();
 
-    const allLabels = new Set<string>();
-    data.companies.forEach((company) => {
-      company.trends.forEach((trend) => {
-        if (trend.metric === leftMetricData || trend.metric === rightMetricData) {
-          trend.data.forEach((point) => {
-            if (point.value !== null) {
-              allLabels.add(point.date);
-            }
-          });
-        }
-      });
-    });
-
-    const sortedLabels = Array.from(allLabels).sort();
+    if (displayDates.length === 0) return;
 
     const datasets: ChartDataset<'line'>[] = [];
 
@@ -138,7 +191,7 @@ export const TrendComparisonChart: Component<TrendComparisonChartProps> = (props
 
       company.trends.forEach((trend) => {
         if (trend.metric === leftMetricData) {
-          const values = sortedLabels.map((label) => {
+          const values = displayDates.map((label) => {
             const point = trend.data.find((p) => p.date === label);
             return point?.value ?? null;
           });
@@ -155,7 +208,7 @@ export const TrendComparisonChart: Component<TrendComparisonChartProps> = (props
             tension: 0.3,
           });
         } else if (trend.metric === rightMetricData) {
-          const values = sortedLabels.map((label) => {
+          const values = displayDates.map((label) => {
             const point = trend.data.find((p) => p.date === label);
             return point?.value ?? null;
           });
@@ -176,68 +229,70 @@ export const TrendComparisonChart: Component<TrendComparisonChartProps> = (props
       });
     });
 
+    const chartOptions: ChartOptions<'line'> = {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
+      scales: {
+        x: {
+          display: true,
+          title: {
+            display: true,
+            text: 'Period',
+          },
+        },
+        y: {
+          type: 'linear',
+          display: true,
+          position: 'left',
+          title: {
+            display: true,
+            text: leftMetricData.toUpperCase(),
+          },
+        },
+        y1: {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          title: {
+            display: true,
+            text: rightMetricData.toUpperCase(),
+          },
+          grid: {
+            drawOnChartArea: false,
+          },
+        },
+      },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            boxWidth: 12,
+            padding: 15,
+          },
+        },
+        tooltip: {
+          callbacks: {
+            label: (context) => {
+              const label = context.dataset.label || '';
+              const value = context.parsed.y?.toFixed(2) ?? 'N/A';
+              return `${label}: ${value}`;
+            },
+          },
+        },
+      },
+    };
+
     const chart = new Chart(canvasRef, {
       type: 'line',
       data: {
-        labels: sortedLabels,
+        labels: displayDates,
         datasets,
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          mode: 'index',
-          intersect: false,
-        },
-        scales: {
-          x: {
-            display: true,
-            title: {
-              display: true,
-              text: 'Period',
-            },
-          },
-          y: {
-            type: 'linear',
-            display: true,
-            position: 'left',
-            title: {
-              display: true,
-              text: leftMetricData.toUpperCase(),
-            },
-          },
-          y1: {
-            type: 'linear',
-            display: true,
-            position: 'right',
-            title: {
-              display: true,
-              text: rightMetricData.toUpperCase(),
-            },
-            grid: {
-              drawOnChartArea: false,
-            },
-          },
-        },
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              boxWidth: 12,
-              padding: 15,
-            },
-          },
-          tooltip: {
-            callbacks: {
-              label: (context) => {
-                const label = context.dataset.label || '';
-                const value = context.parsed.y?.toFixed(2) ?? 'N/A';
-                return `${label}: ${value}`;
-              },
-            },
-          },
-        },
-      },
+      options: chartOptions,
     });
 
     setChartInstance(chart);
@@ -256,13 +311,20 @@ export const TrendComparisonChart: Component<TrendComparisonChartProps> = (props
     }
   });
 
+  createEffect(() => {
+    timeRange();
+    leftMetric();
+    rightMetric();
+    if (trendData()) {
+      createChart();
+    }
+  });
+
   onCleanup(() => {
     if (chartInstance()) {
       chartInstance()!.destroy();
     }
   });
-
-  const availableMetrics = ['roe', 'roi', 'gross_margin', 'net_profit_growth', 'revenue_growth', 'debt_ratio', 'current_ratio'];
 
   return (
     <div style={{ display: 'flex', 'flex-direction': 'column', gap: '1rem' }}>
@@ -303,6 +365,30 @@ export const TrendComparisonChart: Component<TrendComparisonChartProps> = (props
             </select>
           </div>
         </div>
+        <div style={{ display: 'flex', 'align-items': 'center', gap: '0.5rem' }}>
+          <span style={{ 'font-size': '0.875rem', color: '#666' }}>Time Range:</span>
+          <div style={{ display: 'flex', gap: '0.25rem' }}>
+            <For each={['1Y', '3Y', '5Y', 'ALL'] as TimeRange[]}>
+              {(range) => (
+                <button
+                  type="button"
+                  onClick={() => setTimeRange(range)}
+                  style={{
+                    padding: '0.25rem 0.5rem',
+                    'border-radius': '4px',
+                    border: timeRange() === range ? '1px solid #1976d2' : '1px solid #ccc',
+                    background: timeRange() === range ? '#e3f2fd' : '#fff',
+                    color: timeRange() === range ? '#1976d2' : '#666',
+                    'font-size': '0.75rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {range}
+                </button>
+              )}
+            </For>
+          </div>
+        </div>
         <button
           type="button"
           onClick={fetchTrendData}
@@ -320,6 +406,35 @@ export const TrendComparisonChart: Component<TrendComparisonChartProps> = (props
           {loading() ? 'Loading...' : 'Refresh'}
         </button>
       </div>
+
+      <Show when={reportDateIndices().length > 0}>
+        <div style={{
+          display: 'flex',
+          'align-items': 'center',
+          gap: '1rem',
+          padding: '0.5rem 1rem',
+          background: '#f5f5f5',
+          'border-radius': '4px',
+          'font-size': '0.75rem',
+        }}>
+          <span style={{ color: '#666' }}>Financial Report Dates:</span>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <For each={Object.entries(FINANCIAL_REPORT_ANNOTATIONS)}>
+              {([date, info]) => (
+                <div style={{ display: 'flex', 'align-items': 'center', gap: '0.25rem' }}>
+                  <div style={{
+                    width: '12px',
+                    height: '12px',
+                    background: info.color,
+                    'border-radius': '2px',
+                  }} />
+                  <span style={{ color: '#666' }}>{info.label} ({date})</span>
+                </div>
+              )}
+            </For>
+          </div>
+        </div>
+      </Show>
 
       <div style={{ display: 'flex', 'flex-wrap': 'wrap', gap: '0.5rem', 'margin-bottom': '0.5rem' }}>
         <For each={props.selectedCompanies}>

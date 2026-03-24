@@ -598,6 +598,8 @@ class FinancialService:
         result: dict[str, list[tuple[str, float | None]]] = {}
 
         if indicator_data and isinstance(indicator_data, dict):
+            dates = indicator_data.get("_dates", [])
+
             for metric in metrics:
                 if metric in ("roe", "roi", "gross_margin", "net_profit_growth", "revenue_growth"):
                     if metric == "roe":
@@ -634,8 +636,8 @@ class FinancialService:
                     if key and key in indicator_data:
                         values = indicator_data[key]
                         result[metric] = [
-                            (str(i), float(v) if v is not None and str(v) != "nan" else None)
-                            for i, v in enumerate(values)
+                            (date, float(v) if v is not None and str(v) != "nan" else None)
+                            for date, v in zip(dates, values)
                         ]
                     else:
                         result[metric] = []

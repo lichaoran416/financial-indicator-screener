@@ -175,7 +175,7 @@
 | Exclude Industry Option | ✅ Complete | Backend supports exclude_industry; UI dropdown added |
 | Multi-industry Selection UI | ✅ Complete | Backend: industries/exclude_industries params; Frontend: multi-select dropdowns |
 
-### Phase 12: Visualization (JTB-014, JTB-015, JTB-016) ✅ MOSTLY COMPLETE
+### Phase 12: Visualization (JTB-014, JTB-015, JTB-016) ✅ COMPLETE
 | Component | Status | Notes |
 |-----------|--------|-------|
 | TreeMap Component | ✅ Complete | **SPEC REQUIRED AS DEFAULT VIEW** |
@@ -183,8 +183,8 @@
 | ValueSlider | ✅ Complete | Range slider with histogram - shows distribution and percentiles, integrated with ValueInput for "between" operator |
 | IndustryHeatmap | ✅ Complete | Industry distribution heatmap |
 | ConditionTree visualization | ✅ Complete | Graphical condition structure diagram |
-| Time-Series Line Chart | ❌ Missing | Historical metric trends |
-| Multi-Company Comparison | ❌ Missing | Cannot compare >1 company trends |
+| Time-Series Line Chart | ✅ Complete | Time range zoom (1Y/3Y/5Y/ALL), financial report date markers (Q1=04-30, Q2=08-31, Q3=10-31, Q4=03-31), legend display |
+| Multi-Company Comparison | ✅ Complete | Backend returns dates (not indices); akshare_client.py preserves date info; financial.py get_company_metrics_time_series uses actual dates |
 
 ### Phase 13: Multi-field Sorting
 | Component | Status | Notes |
@@ -236,14 +236,14 @@
 - [x] Add exclude industry option to screening UI
 - [x] Add multi-industry selection to screening UI
 
-### Phase 12: Visualization (JTB-014, JTB-015, JTB-016) - HIGH PRIORITY
+### Phase 12: Visualization (JTB-014, JTB-015, JTB-016) - HIGH PRIORITY ✅ COMPLETE
 - [x] **Create TreeMap component** - SPEC SAYS DEFAULT VIEW, MUST IMPLEMENT
 - [x] Create TrendComparisonChart (up to 10 companies, dual Y-axis) - Backend: `get_company_metrics_time_series` in financial.py, POST /company/trend; Frontend: TrendComparisonChart component
 - [x] Create ValueSlider with histogram - shows value distribution, percentiles (P25/P50/P75), quick range presets
 - [x] Create IndustryHeatmap - Shows industry distribution as color-coded heatmap
 - [x] Create ConditionTree visualization - Shows tree structure of conditions with AND/OR logic, collapsible
-- [ ] Create Time-Series Line Chart for historical metric trends
-- [ ] Create Multi-Company Comparison feature
+- [x] Create Time-Series Line Chart for historical metric trends - Added time range zoom controls (1Y, 3Y, 5Y, ALL), financial report date markers with legend (Q1=04-30, Q2=08-31, Q3=10-31, Q4=03-31)
+- [x] Create Multi-Company Comparison feature - Backend returns actual dates (not indices); akshare_client.py get_financial_indicator preserves date info; financial.py get_company_metrics_time_series uses dates
 
 ### Phase 13: Multi-field Sorting
 - [x] Add secondary sort field UI - Added sort_by_2/order_2 to ScreenRequest, "Advanced Sort" UI in ScreeningPage

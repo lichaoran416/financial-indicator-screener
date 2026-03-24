@@ -167,7 +167,12 @@ class AkshareClient:
             df = await self.get_financial_indicators(symbol, start_year, end_year)
             if df is None or df.empty:
                 return {}
-            return cast(dict[str, Any], df.to_dict(orient="list"))
+            dates = [str(col) for col in df.columns]
+            index_dict = df.to_dict(orient="index")
+            result: dict[str, Any] = {"_dates": dates}
+            for indicator_name, date_values in index_dict.items():
+                result[str(indicator_name)] = [date_values.get(col) for col in df.columns]
+            return cast(dict[str, Any], result)
         except AkshareAPIError:
             return {}
         except Exception as e:
