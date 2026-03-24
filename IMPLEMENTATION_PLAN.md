@@ -235,7 +235,7 @@
 - [x] Create TrendComparisonChart (up to 10 companies, dual Y-axis) - Backend: `get_company_metrics_time_series` in financial.py, POST /company/trend; Frontend: TrendComparisonChart component
 - [x] Create ValueSlider with histogram - shows value distribution, percentiles (P25/P50/P75), quick range presets
 - [x] Create ConditionTree visualization - Shows tree structure of conditions with AND/OR logic, collapsible
-- [ ] Create IndustryHeatmap
+- [x] Create IndustryHeatmap - Shows industry distribution as color-coded heatmap
 - [ ] Create Time-Series Line Chart for historical metric trends
 - [ ] Create Multi-Company Comparison feature
 

@@ -7,6 +7,7 @@ import type { CompanyInfo } from '../api/screen';
 import { getMetrics, MetricInfo } from '../api/metrics';
 import { getCSRCIndustries, getSWIndustries } from '../api/company';
 import TreeMap from '../components/visualization/TreeMap';
+import IndustryHeatmap from '../components/visualization/IndustryHeatmap';
 import TrendComparisonChart from '../components/visualization/TrendComparisonChart';
 import type { IndustryClassification } from '../lib/types';
 
@@ -40,7 +41,7 @@ export default function ScreeningPage() {
   const [excludeIndustry, setExcludeIndustry] = createSignal<string[]>([]);
   const [industries, setIndustries] = createSignal<IndustryClassification[]>([]);
   const [industryType, setIndustryType] = createSignal<'csrc' | 'sw1' | 'sw3'>('csrc');
-  const [viewMode, setViewMode] = createSignal<'treemap' | 'table'>('treemap');
+  const [viewMode, setViewMode] = createSignal<'treemap' | 'table' | 'heatmap'>('treemap');
   const [selectedCompany, setSelectedCompany] = createSignal<CompanyInfo | null>(null);
   const [selectedForComparison, setSelectedForComparison] = createSignal<CompanyInfo[]>([]);
   const [showTrendChart, setShowTrendChart] = createSignal(false);
@@ -415,6 +416,23 @@ export default function ScreeningPage() {
               >
                 Table
               </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('heatmap')}
+                style={{
+                  padding: '0.375rem 0.75rem',
+                  'border-radius': '4px',
+                  border: '1px solid',
+                  'border-color': viewMode() === 'heatmap' ? '#1976d2' : '#ccc',
+                  background: viewMode() === 'heatmap' ? '#e3f2fd' : 'white',
+                  color: viewMode() === 'heatmap' ? '#1976d2' : '#666',
+                  'font-size': '0.875rem',
+                  cursor: 'pointer',
+                  'font-weight': viewMode() === 'heatmap' ? '600' : '400',
+                }}
+              >
+                Heatmap
+              </button>
             </div>
           </div>
 
@@ -432,6 +450,10 @@ export default function ScreeningPage() {
               sortColumn={sortColumn() as keyof CompanyInfo | null}
               sortOrder={sortOrder()}
             />
+          </Show>
+
+          <Show when={viewMode() === 'heatmap'}>
+            <IndustryHeatmap companies={companies()} />
           </Show>
         </Show>
 
