@@ -26,35 +26,48 @@
 stock-analysis-1/
 ├── src/
 │   ├── frontend/                    # Solid.js 前端
-│   │   ├── components/              # 可复用UI组件
-│   │   ├── pages/                  # 页面组件
-│   │   ├── stores/                  # 状态管理
-│   │   ├── api/                    # API客户端
-│   │   └── utils/                   # 工具函数
+│   │   ├── src/
+│   │   │   ├── components/         # 可复用UI组件
+│   │   │   │   ├── common/         # 通用组件
+│   │   │   │   ├── condition/      # 条件配置组件
+│   │   │   │   ├── results/        # 结果展示组件
+│   │   │   │   ├── visualization/  # 图表组件
+│   │   │   │   └── comparison/     # 对比组件
+│   │   │   ├── pages/              # 页面组件
+│   │   │   ├── stores/             # 状态管理
+│   │   │   ├── api/                # API客户端
+│   │   │   └── lib/                # 工具函数和类型
+│   │   ├── tests/                  # 前端测试
+│   │   └── dist/                   # 生产构建输出
 │   │
-│   └── backend/                     # FastAPI 后端
-│       ├── api/
-│       │   └── v1/
-│       │       ├── endpoints/       # API路由
-│       │       └── router.py        # 路由聚合
-│       ├── core/
-│       │   ├── config.py            # 配置管理
-│       │   └── redis.py             # Redis连接
-│       ├── models/                  # Pydantic模型
-│       ├── services/                # 业务逻辑
-│       └── utils/                   # 工具函数
+│   └── backend/                    # FastAPI 后端
+│       ├── app/
+│       │   ├── api/
+│       │   │   └── v1/
+│       │   │       ├── endpoints/  # API路由
+│       │   │       └── router.py   # 路由聚合
+│       │   ├── core/
+│       │   │   ├── config.py       # 配置管理
+│       │   │   ├── redis.py        # Redis连接
+│       │   │   └── logging.py      # 日志中间件
+│       │   ├── models/
+│       │   │   └── schemas.py      # Pydantic模型
+│       │   ├── services/
+│       │   │   ├── financial.py     # 财务服务
+│       │   │   └── formula_service.py  # 公式服务
+│       │   └── utils/
+│       │       ├── akshare_client.py   # akshare封装
+│       │       ├── formula_lexer.py    # 公式词法分析
+│       │       ├── formula_parser.py   # 公式语法分析
+│       │       └── formula_evaluator.py # 公式计算
+│       └── tests/                  # 后端测试
+│           ├── unit/
+│           └── integration/
 │
-├── src/
-│   ├── frontend/
-│   │   └── tests/                   # 前端测试
-│   └── backend/
-│       └── tests/                   # 后端测试
-│           └── conftest.py
-│
-├── specs/                           # 规格文档
-├── package.json                     # 前端依赖
-├── requirements.txt                 # 后端依赖
-└── pyproject.toml                   # 后端项目配置
+├── specs/                          # 规格文档
+├── package.json                    # 前端依赖
+├── requirements.txt                # 后端依赖
+└── pyproject.toml                  # 后端项目配置
 ```
 
 **注意**: 所有业务代码必须放在 `src/` 目录下。
@@ -95,13 +108,75 @@ stock-analysis-1/
 
 ```
 /api/v1/
-├── screen              # 筛选相关
-│   ├── POST /screen           # 执行筛选
-│   ├── POST /screen/save      # 保存条件
-│   └── GET  /screen/saved     # 获取已保存条件
-├── company/{code}     # 公司详情
-├── metrics            # 指标列表
-└── cache/refresh      # 刷新缓存
+├── screen                           # 筛选相关
+│   ├── POST /screen                 # 执行筛选
+│   ├── POST /screen/save            # 保存条件
+│   ├── GET  /screen/saved           # 获取已保存条件
+│   └── DELETE /screen/saved/{id}    # 删除已保存条件
+├── company/
+│   ├── GET  /company/{code}         # 公司详情
+│   ├── POST /company/compare        # 同行对比
+│   └── POST /company/trend          # 趋势对比
+├── industry/
+│   ├── GET /industry/csrc           # 证监会行业分类
+│   ├── GET /industry/sw-one         # 申万一级行业
+│   ├── GET /industry/sw-three       # 申万三级行业
+│   └── GET /industry/ths           # 同花顺行业分类
+├── formula/
+│   ├── POST /formula/validate       # 验证公式
+│   ├── POST /formula/evaluate       # 计算公式
+│   ├── POST /formula/save           # 保存公式
+│   ├── GET  /formula/saved          # 获取已保存公式
+│   ├── PUT  /formula/{id}           # 更新公式
+│   └── DELETE /formula/{id}         # 删除公式
+├── metrics                          # 指标列表
+└── cache/refresh                    # 刷新缓存
+```
+
+### 公式引擎架构
+
+公式引擎负责解析和计算自定义财务指标表达式。
+
+#### 组件结构
+
+| 组件 | 文件 | 职责 |
+|------|------|------|
+| 词法分析器 | `formula_lexer.py` | 将公式字符串分解为Token流 |
+| 语法分析器 | `formula_parser.py` | 将Token流转换为AST抽象语法树 |
+| 求值器 | `formula_evaluator.py` | 根据AST和财务数据计算公式结果 |
+
+#### 支持的语法
+
+**基本运算符**: `+`, `-`, `*`, `/`, `()` (括号优先级)
+
+**内置函数**:
+- `AVG(metric)` - 平均值
+- `SUM(metric)` - 求和
+- `MIN(metric)` - 最小值
+- `MAX(metric)` - 最大值
+- `STD(metric)` - 标准差
+
+**时间序列语法**:
+- `ROE[2023]` - 指定年份的值
+- `ROE[2020:2024]` - 年份范围 (包含两端)
+- `AVG(ROE[2020:2024])` - 组合使用
+
+#### 数据类型
+
+- **标量值**: 单个数值 (如 `roe / roi`)
+- **列表值**: 时间序列 (如 `ROE[2020:2024]`)
+
+#### 示例
+
+```
+# 简单计算
+roe / roi
+
+# 使用时间序列
+AVG(ROE[2020:2024])
+
+# 复杂嵌套
+(净利润 / 总资产) * 100
 ```
 
 ### 依赖版本
