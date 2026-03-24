@@ -89,7 +89,7 @@ class AkshareClient:
         try:
             normalized_symbol = self._normalize_symbol(symbol)
             df = await self._retry_async(
-                ak.stock_individual_info_ths,
+                ak.stock_individual_info_em,
                 normalized_symbol,
             )
             if df is None or df.empty:

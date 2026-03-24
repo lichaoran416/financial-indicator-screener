@@ -1,6 +1,6 @@
 # Implementation Plan - A股财务指标分析应用
 
-## Status: v0.5.8 - GAP-F5 squarified TreeMap, GAP-F7 FormulaEditor evaluation, GAP-F8 Pagination input completed
+## Status: v0.5.9 - BUG-H6 Fixed: Unified data sources in akshare_client.py
 
 ## CRITICAL CONSTRAINT: 只使用akshare提供的数据api, 不要使用其他数据api
 
@@ -24,7 +24,7 @@
 - [x] **BUG-H3** `financial.py:431` - ~~metric name mismatch: `gross_margin`~~ **VERIFIED NOT A BUG**: `gross_margin` is consistent throughout
 - [x] **BUG-H4** `screen.py:122-130` - ~~Delete returns `{"deleted": True}` even when screen_id wasn't found~~ **VERIFIED NOT A BUG**: Logic `len(existing) > len(updated)` correctly returns False when not found
 - [x] **BUG-H5** `company.py:198-205,292-293` - Silent exception swallowing in peer comparison AND trend endpoint with `continue`, no logging
-- [ ] **BUG-H6** `akshare_client.py` - Uses different data sources: `get_company_info()` uses `stock_individual_info_ths`, `get_market_capital()` and `get_industry_peers()` use `stock_individual_info_em`
+- [x] **BUG-H6** `akshare_client.py` - Uses different data sources: `get_company_info()` uses `stock_individual_info_ths`, `get_market_capital()` and `get_industry_peers()` use `stock_individual_info_em` [FIXED: Changed get_company_info() to use stock_individual_info_em for consistency with other functions]
 - [x] **BUG-H7** `formula_service.py` has `update_formula()` method but NO corresponding PUT API endpoint
 - [x] **BUG-H8** `screen.py:73-88` - Secondary sorting (`sort_by_2`, `order_2`) NOT passed to `get_companies_from_financial_service()`. Secondary sorting is defined in schema and service supports it, but endpoint never passes these parameters.
 - [x] **BUG-H9** `financial.py:406,412` - Sort key uses `or 0` causing missing data to sort to TOP in descending order (0 is largest)
