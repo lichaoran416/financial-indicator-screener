@@ -15,6 +15,7 @@ interface TreemapRect {
   width: number;
   height: number;
   color: string;
+  incomplete: boolean;
 }
 
 const getMetricValue = (company: CompanyInfo, metricKey: string): number => {
@@ -89,6 +90,7 @@ const TreeMap: Component<TreeMapProps> = (props) => {
     companies.forEach((company, index) => {
       const value = values[index];
       const ratio = value / totalValue;
+      const incomplete = (company.available_years ?? 0) < 5;
 
       let rectWidth: number;
       let rectHeight: number;
@@ -104,6 +106,7 @@ const TreeMap: Component<TreeMapProps> = (props) => {
           width: rectWidth - 2,
           height: rectHeight - 2,
           color: getColor(value, minValue(), maxValue()),
+          incomplete,
         });
         currentX += rectWidth;
         remainingWidth -= rectWidth;
@@ -118,6 +121,7 @@ const TreeMap: Component<TreeMapProps> = (props) => {
           width: rectWidth - 2,
           height: rectHeight - 2,
           color: getColor(value, minValue(), maxValue()),
+          incomplete,
         });
         currentY += rectHeight;
         remainingHeight -= rectHeight;
@@ -208,7 +212,7 @@ const TreeMap: Component<TreeMapProps> = (props) => {
                   width: `${rect.width}px`,
                   height: `${rect.height}px`,
                   background: rect.color,
-                  border: '1px solid rgba(255,255,255,0.3)',
+                  border: rect.incomplete ? '2px dashed rgba(255,100,100,0.8)' : '1px solid rgba(255,255,255,0.3)',
                   'border-radius': '4px',
                   cursor: 'pointer',
                   overflow: 'hidden',
@@ -230,7 +234,7 @@ const TreeMap: Component<TreeMapProps> = (props) => {
                   e.currentTarget.style.zIndex = '1';
                 }}
                 onClick={() => props.onSelectCompany(rect.company)}
-                title={`${rect.company.name} (${rect.company.code}): ${formatMetric(rect.value)}`}
+                title={`${rect.company.name} (${rect.company.code}): ${formatMetric(rect.value)}${rect.incomplete ? ' [Incomplete Data]' : ''}`}
               >
                 <div style={{
                   'font-size': rect.width > 80 ? '0.875rem' : '0.625rem',

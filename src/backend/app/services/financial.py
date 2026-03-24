@@ -107,8 +107,13 @@ class FinancialService:
         indicator_data = await akshare_client.get_financial_indicator(code, period, years)
         price_data = await akshare_client.get_stock_price(code)
 
-        metrics = {}
+        metrics: dict[str, Any] = {}
+        available_years = 0
+
         if indicator_data and isinstance(indicator_data, dict):
+            dates = indicator_data.get("_dates", [])
+            available_years = self._count_available_years(indicator_data, dates)
+
             if period == Period.TTM.value:
                 metrics["roe"] = (
                     self._get_ttm_sum(indicator_data, ["roe"], 4)
@@ -161,7 +166,20 @@ class FinancialService:
                 if total_equity and total_equity > 0:
                     metrics["pb"] = market_cap / total_equity
 
+        metrics["_available_years"] = available_years
         return metrics
+
+    def _count_available_years(self, indicator_data: dict[str, Any], dates: list[str]) -> int:
+        if not dates:
+            return 0
+        key_metrics = ["roe", "roic", "roi", "gross_profit_margin"]
+        max_available = 0
+        for metric_key in key_metrics:
+            if metric_key in indicator_data:
+                values = indicator_data.get(metric_key, [])
+                available = sum(1 for v in values if v is not None and str(v) != "nan")
+                max_available = max(max_available, available)
+        return max_available
 
     def _safe_get_last_values(self, values: list) -> Optional[float]:
         if not values or len(values) == 0:
@@ -359,6 +377,7 @@ class FinancialService:
             years = conditions[0].get("years", 5) if conditions else 5
             metrics = await self.get_company_metrics(code, period=period, years=years)
             company["metrics"] = metrics
+            company["available_years"] = metrics.get("_available_years", 0)
 
             if profit_only:
                 net_profit = metrics.get("net_profit") or metrics.get("roe", 0)

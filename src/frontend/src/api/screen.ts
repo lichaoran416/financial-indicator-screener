@@ -35,6 +35,7 @@ export interface CompanyInfo {
   risk_flag: "NORMAL" | "ST" | "STAR_ST" | "DELISTING_RISK";
   industry?: string;
   metrics?: Record<string, number>;
+  available_years?: number;
 }
 
 export interface ScreenResponse {

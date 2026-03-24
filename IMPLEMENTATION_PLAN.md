@@ -197,7 +197,7 @@
 |-----------|--------|-------|
 | ROE N/A when profit negative | ✅ Complete | Verified in financial.py |
 | Risk warning text messages | ✅ Complete | Warning text added to TableRow, ScreeningPage modal, and CompanyDetailPage |
-| Mark missing years in results | ❌ Missing | Years not marked |
+| Mark missing years in results | ✅ Complete | Added available_years field to CompanyInfo; TreeMap shows dashed border and tooltip indicator for incomplete data |
 
 ### Phase 15: UX & Performance
 | Component | Status | Notes |
@@ -251,8 +251,8 @@
 - [x] Add secondary sort field UI - Added sort_by_2/order_2 to ScreenRequest, "Advanced Sort" UI in ScreeningPage
 
 ### Phase 14: Edge Case Enhancements
-- [ ] Add risk warning text messages (not just badges)
-- [ ] Mark missing years explicitly in results table
+- [x] Add risk warning text messages (not just badges)
+- [x] Mark missing years explicitly in results table - Added available_years field to CompanyInfo; TreeMap shows dashed border and tooltip for incomplete data
 
 ### Phase 15: UX & Performance
 - [x] N/A - Virtual scrolling not applicable (pagination design limits DOM to 100 items)

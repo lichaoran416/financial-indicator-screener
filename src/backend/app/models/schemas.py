@@ -76,6 +76,9 @@ class CompanyInfo(BaseModel):
     risk_flag: RiskFlag
     industry: Optional[str] = None
     metrics: dict = Field(default_factory=dict, description="Financial metrics dictionary")
+    available_years: int = Field(
+        default=0, description="Number of years with available data out of requested years"
+    )
 
 
 class ScreenResponse(BaseModel):
