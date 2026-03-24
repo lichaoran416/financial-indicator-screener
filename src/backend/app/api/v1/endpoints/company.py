@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Path
 from typing import Any
+import pandas as pd
 
 from app.core.redis import redis_manager
 from app.models.schemas import (
@@ -35,9 +36,23 @@ async def get_company_info(stock_code: str) -> dict[str, Any]:
         for _, row in stock_info.iterrows():
             info_dict[row["item"]] = row["value"]
 
-        metrics = ak.stock_financial_analysis_indicator(symbol=stock_code)
+        metrics_df = ak.stock_financial_analysis_indicator(symbol=stock_code)
 
-        return {"info": info_dict, "metrics": metrics.to_dict(orient="records")}
+        metrics_dict: dict[str, float] = {}
+        if metrics_df is not None and not metrics_df.empty:
+            for _, row in metrics_df.iterrows():
+                metric_name = str(row.iloc[0]) if pd.notna(row.iloc[0]) else None
+                if metric_name:
+                    last_valid_value = None
+                    for i in range(len(row) - 1, 0, -1):
+                        val = row.iloc[i]
+                        if pd.notna(val) and isinstance(val, (int, float)):
+                            last_valid_value = float(val)
+                            break
+                    if last_valid_value is not None:
+                        metrics_dict[metric_name] = last_valid_value
+
+        return {"info": info_dict, "metrics": metrics_dict}
     except Exception:
         raise HTTPException(status_code=404, detail=f"Company {stock_code} not found")
 

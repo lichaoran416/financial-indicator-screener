@@ -54,17 +54,15 @@
 - **Issue**: compare_with_peers endpoint never fetches peer metrics - all values hardcoded None
 - **Fix**: Implemented actual peer metrics calculation with industry_avg, industry_median, percentile
 
-### Bug 5: CompanyDetailPage data structure mismatch ❌ NOT FULLY FIXED
+### Bug 5: CompanyDetailPage data structure mismatch ✅ VERIFIED FIXED
 - **Location**: `src/frontend/src/pages/CompanyDetailPage.tsx` vs `src/backend/app/models/schemas.py`
-- **Issue**: Frontend `api/company.ts` interface expects: `{code, name, industry, status, risk_flag, metrics}` which matches backend
-- **Issue**: BUT `src/frontend/src/lib/types.ts:40-49` defines completely different `CompanyDetailResponse` with `market`, `totalShares`, `circulatingShares`, `financials`, `riskAssessment` - this interface is DEAD CODE
-- **Issue**: Backend `company.py:74` assigns a LIST to `metrics` but schema expects `dict`
+- **Issue**: Backend `company.py:40` returned `metrics.to_dict(orient="records")` (list) but schema expects dict
+- **Fix**: Changed to build `metrics_dict` as `dict[str, float]` with most recent year values for each indicator
 
-### Bug 6: Frontend-backend type mismatches ❌ PARTIALLY FIXED
+### Bug 6: Frontend-backend type mismatches ✅ VERIFIED FIXED
 - **Location**: `src/frontend/src/lib/types.ts` vs `src/backend/app/models/schemas.py`
-- **Issue**: `types.ts` CompanyDetailResponse is dead code and completely wrong
-- **Issue**: `api/company.ts` interface is correct and matches backend
-- **Issue**: `risk_flag` vs `riskFlag` (snake_case vs camelCase) - backend returns snake_case, frontend handles it
+- **Issue**: `types.ts` had dead `CompanyDetailResponse`, `FinancialData`, `RiskAssessment` interfaces
+- **Fix**: Removed dead code from `types.ts` (lines 40-68)
 
 ### Bug 7: ROE shows negative when profit negative - should be N/A ✅ VERIFIED FIXED
 - **Location**: `src/backend/app/services/financial.py:248-249`
@@ -211,7 +209,7 @@
 - [x] Fix Bug 2: TTM rolling uses FIRST values - change to LAST in `financial.py:175-176`
 - [x] Fix Bug 3: Formula evaluator `ROE[2020:2024]` returns only last value in `formula_evaluator.py:115-116`
 - [x] Fix Bug 4: Implement peer comparison API with actual metrics in `company.py:152-158`
-- [ ] Fix Bug 5/6: Align CompanyDetailResponse - fix backend metrics type (list vs dict), remove dead code in types.ts
+- [x] Fix Bug 5/6: Align CompanyDetailResponse - fix backend metrics type (list vs dict), remove dead code in types.ts
 - [x] Fix Issue 1: Remove duplicate field definitions in ScreenRequest schema
 - [x] Fix Issue 2: Remove dead code (FormulaEditor.tsx, formulaStore.ts)
 - [x] Fix Issue 3: CANCELLED - FormulaEditor removed as dead code
@@ -255,8 +253,8 @@
 - [ ] Add cache invalidation mechanism
 
 ### Cleanup (Can do anytime)
-- [ ] Remove dead code: unused `CompanyDetailResponse` in `types.ts` lines 40-49
-- [ ] Remove dead code: `FinancialData` and `RiskAssessment` interfaces in `types.ts`
+- [x] Remove dead code: unused `CompanyDetailResponse` in `types.ts` lines 40-49 ✅ REMOVED
+- [x] Remove dead code: `FinancialData` and `RiskAssessment` interfaces in `types.ts` ✅ REMOVED
 - [ ] Remove dead code: FormulaEditor.tsx is never imported anywhere
 - [ ] Remove dead code: All 5 stores are never used by pages (except formulaStore used by dead FormulaEditor)
 - [ ] Add tests for formula_evaluator time series range (Bug 3)
@@ -323,9 +321,9 @@ npm run lint
 
 | Item | Location | Status |
 |------|----------|--------|
-| `CompanyDetailResponse` (wrong) | `src/frontend/src/lib/types.ts:40-49` | Dead - never used |
-| `FinancialData` interface | `src/frontend/src/lib/types.ts:51-61` | Dead - only used by dead interface |
-| `RiskAssessment` interface | `src/frontend/src/lib/types.ts:64-68` | Dead - only used by dead interface |
+| `CompanyDetailResponse` (wrong) | `src/frontend/src/lib/types.ts:40-49` | ✅ REMOVED |
+| `FinancialData` interface | `src/frontend/src/lib/types.ts:51-61` | ✅ REMOVED |
+| `RiskAssessment` interface | `src/frontend/src/lib/types.ts:64-68` | ✅ REMOVED |
 | `FormulaEditor.tsx` | `src/frontend/src/components/formula/FormulaEditor.tsx` | ✅ REMOVED (Issue 2) |
 | `formulaStore.ts` | `src/frontend/src/stores/formulaStore.ts` | ✅ REMOVED (Issue 2) |
 | `screeningStore.ts` | `src/frontend/src/stores/screeningStore.ts` | Dead - pages use local createSignal() |

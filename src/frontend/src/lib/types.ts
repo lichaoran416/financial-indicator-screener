@@ -37,36 +37,6 @@ export interface CompanyResult {
   industry?: string;
 }
 
-export interface CompanyDetailResponse {
-  code: string;
-  name: string;
-  industry: string;
-  market: string;
-  totalShares: number;
-  circulatingShares: number;
-  financials: FinancialData;
-  riskAssessment: RiskAssessment;
-}
-
-export interface FinancialData {
-  revenue: number;
-  netProfit: number;
-  totalAssets: number;
-  totalLiabilities: number;
-  equity: number;
-  roe: number;
-  roa: number;
-  debtRatio: number;
-  currentRatio: number;
-  quickRatio: number;
-}
-
-export interface RiskAssessment {
-  riskFlag: RiskFlag;
-  riskScore: number;
-  riskFactors: string[];
-}
-
 export interface MetricInfo {
   id: string;
   name: string;

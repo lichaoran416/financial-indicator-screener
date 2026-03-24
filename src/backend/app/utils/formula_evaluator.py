@@ -214,26 +214,26 @@ class FormulaEvaluator:
             )
 
             for i in range(max_len):
-                l = left_values[i] if left_values and i < len(left_values) else 0.0
-                r = right_values[i] if right_values and i < len(right_values) else 0.0
+                left_val = left_values[i] if left_values and i < len(left_values) else 0.0
+                right_val = right_values[i] if right_values and i < len(right_values) else 0.0
 
                 if node.node_type == ASTNodeType.BINARY_OP:
                     if node.operator == "+":
-                        results.append(l + r)
+                        results.append(left_val + right_val)
                     elif node.operator == "-":
-                        results.append(l - r)
+                        results.append(left_val - right_val)
                     elif node.operator == "*":
-                        results.append(l * r)
+                        results.append(left_val * right_val)
                     elif node.operator == "/":
-                        if r == 0:
+                        if right_val == 0:
                             results.append(0.0)
                         else:
-                            results.append(l / r)
+                            results.append(left_val / right_val)
                 elif node.node_type == ASTNodeType.UNARY_OP:
                     if node.operator == "-":
-                        results.append(-r)
+                        results.append(-right_val)
                     else:
-                        results.append(r)
+                        results.append(right_val)
 
             return results
 

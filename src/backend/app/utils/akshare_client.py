@@ -132,8 +132,6 @@ class AkshareClient:
     ) -> dict[str, Any]:
         try:
             normalized_symbol = self._normalize_symbol(symbol)
-            end_year = pd.Timestamp.now().year
-            start_year = end_year - years + 1
 
             income_df = await self._retry_async(
                 ak.stock_profit_sheet_by_report_em,
