@@ -98,22 +98,26 @@ class FormulaEvaluator:
         value = self.metrics_data[metric_name]
 
         if isinstance(value, dict):
-            year_dict = cast(dict[int, float], value)
+            year_dict: dict[str | int, float] = cast(dict[str | int, float], value)
             if isinstance(year, tuple):
                 start_year, end_year = year
                 values = []
                 for y in range(start_year, end_year + 1):
                     if y in year_dict and year_dict[y] is not None:
                         values.append(float(year_dict[y]))
+                    elif str(y) in year_dict and year_dict[str(y)] is not None:
+                        values.append(float(year_dict[str(y)]))
                 if not values:
                     raise FormulaEvaluatorError(
                         f"No data for {metric_name}[{start_year}:{end_year}]"
                     )
                 return values
             else:
-                if year not in year_dict or year_dict[year] is None:
-                    raise FormulaEvaluatorError(f"No data for {metric_name}[{year}]")
-                return float(year_dict[year])
+                if year in year_dict and year_dict[year] is not None:
+                    return float(year_dict[year])
+                elif str(year) in year_dict and year_dict[str(year)] is not None:
+                    return float(year_dict[str(year)])
+                raise FormulaEvaluatorError(f"No data for {metric_name}[{year}]")
 
         if isinstance(value, list):
             if len(value) == 0:

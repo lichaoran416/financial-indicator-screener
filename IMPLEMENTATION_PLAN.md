@@ -1,6 +1,6 @@
 # Implementation Plan - A股财务指标分析应用
 
-## Status: v0.7.0 - FIXED: NEW-6 (actual company-specific financial report disclosure dates from cninfo via stock_report_disclosure)
+## Status: v0.7.1 - ADDED: Integration tests for formula API + FIXED: NEW-11 (time series with JSON string keys)
 
 ## CRITICAL CONSTRAINT: 只使用akshare提供的数据api, 不要使用其他数据api
 
@@ -61,6 +61,7 @@
 - [x] **NEW-8** `akshare_client.py` - Data source discrepancy: spec says `stock_financial_report_sina` but code uses `stock_profit_sheet_by_report_em` for income data [FIXED: Updated specs/02_data_source.md]
 - [x] **NEW-9** Frontend npm dependencies may not be fully installed (eslint not found, TypeScript definition files missing) [FIXED: Dependencies installed, eslint and typecheck pass]
 - [x] **NEW-10** Backend mypy shows errors - missing type stubs for pandas and akshare [CANNOT FIX: pip not available in environment]
+- [x] **NEW-11** `formula_evaluator.py:92-138` - Time series with JSON string keys (from API) couldn't be evaluated because evaluator expected integer keys [FIXED: Updated get_time_series_value to try both integer and string keys when looking up year data]
 
 ---
 
@@ -303,8 +304,8 @@ const response = await apiClient.post('/company/trend', {
 | Time series evaluation | TESTED | Added `TestTimeSeriesEvaluation` class with 2 tests |
 | Multiple function arguments (`AVG(roe, roi)`) | TESTED | Added `TestMultipleFunctionArguments` class with 4 tests |
 | Division by zero in `evaluate_list()` | TESTED | Added `test_division_by_zero_in_list_evaluation` test |
-| Complete integration flow | NOT TESTED | No integration tests exist (`tests/integration/__init__.py` is empty) |
-| Formula update operation | NOT TESTED | PUT endpoint now exists (BUG-H7 fixed) |
+| Complete integration flow | TESTED | Added `TestFormulaAPIIntegration` with 13 tests covering all formula CRUD operations |
+| Formula update operation | TESTED | Added `test_update_formula_endpoint` and related tests in integration tests |
 | Comparison operators in formula context | NOT TESTED | Only tested in condition filtering context |
 | Financial report date annotations | NOT TESTED | Annotations are hardcoded placeholders, not actual company-specific dates |
 
@@ -366,7 +367,7 @@ npm run lint
 - [x] Show formula calculation result in FormulaEditor (GAP-F7) - FormulaEditor now calls evaluateFormula with sample company metrics and displays result
 - [x] Add direct page number input to pagination (GAP-F8) - Added page number input field with validation, error display, and Enter key support
 - [x] Use Chinese metric names from METRIC_DEFINITIONS (GAP-F9) - metrics.py now uses Chinese names
-- [ ] Add missing test coverage
+- [x] Add missing test coverage - Added 13 integration tests for formula API endpoints
 - [x] Document undocumented API endpoints - specs/05_backend.md updated with all endpoints
 - [x] Integrate log_data_acquisition() into akshare calls (NEW-1)
 - [x] Apply track_duration decorator to slow functions (NEW-2)
@@ -377,7 +378,7 @@ npm run lint
 - [x] Update specs/03_technical_architecture.md with correct paths
 - [x] Add formula engine documentation
 - [x] Fix data source documentation mismatch (specs/02_data_source.md)
-- [ ] Add integration tests
+- [x] Add integration tests - Added `tests/integration/test_formula_api.py` with 13 tests for formula CRUD operations
 - [x] Document THS industry classification (specs/09_industry_comparison.md)
 - [x] Integrate log_data_acquisition() into akshare calls (NEW-1)
 - [x] Apply track_duration decorator to slow functions (NEW-2)
