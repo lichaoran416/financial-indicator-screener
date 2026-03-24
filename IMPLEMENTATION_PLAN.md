@@ -1,6 +1,6 @@
 # Implementation Plan - A股财务指标分析应用
 
-## Status: IN PROGRESS - v0.3.0 Bug Fix Release Complete, v0.4.0 Feature Completion in Progress
+## Status: IN PROGRESS - v0.4.0 Feature Completion Nearly Complete
 
 ## CRITICAL CONSTRAINT: 只使用akshare提供的数据api, 不要使用其他数据api
 
@@ -20,15 +20,7 @@
 
 ### High Priority Gaps (Verified)
 
-- [ ] **JTB-011** THS industry classification missing - No `get_industry_ths()` method in akshare_client.py
-- [ ] **JTB-011** CSRC industry not 3-level hierarchy - `get_industry_csrc()` returns flat list, not 门类/大类/中类 structure
-
-### Medium Priority Gaps
-
-- [ ] **JTB-010** Missing data not displayed as "N/A" - TableRow doesn't show metrics at all
-- [ ] **JTB-010** available_years not shown to users - only used internally, not exposed in UI
 - [ ] Cache TTL not enforced for saved screens - `redis_manager.set_json(SAVED_SCREENS_KEY, ...)` called without TTL (screen.py:104, 125), meaning saved screens never expire
-- [ ] **JTB-008** Loss-making companies (negative metrics) not visually distinguished in frontend (no red coloring)
 
 ### Lower Priority
 
@@ -55,6 +47,11 @@
 - [x] JTB-007 include_suspended flag works
 - [x] JTB-009 include_st flag works
 - [x] JTB-010 require_complete_data flag works
+
+### JTB-010 Metrics Display (NEW)
+- [x] JTB-010 Missing data displayed as "N/A" - TableRow now shows metrics with N/A for missing values
+- [x] JTB-010 available_years shown to users - displayed in results table
+- [x] Loss-making companies (negative metrics) shown in red in frontend
 
 ### Industry Comparison
 - [x] JTB-011 Industry filtering works (industry/exclude_industry/industries)
@@ -147,13 +144,15 @@ def parse_time_series(self, metric_name: str) -> ASTNode:
 
 ## Missing Features Detail
 
-### THS Industry Classification (JTB-011)
-**Location**: `src/backend/app/utils/akshare_client.py`
-**Issue**: No `get_industry_ths()` method exists. Only CSRC and SW (申万) industry classifications available.
+
 
 ### CSRC 3-Level Hierarchy (JTB-011)
-**Location**: `src/backend/app/utils/akshare_client.py:208-226`
-**Issue**: `get_industry_csrc()` returns flat list, not proper 门类/大类/中类 structure.
+**Location**: `src/backend/app/utils/akshare_client.py`
+**Implementation**: Now uses `stock_industry_category_cninfo` instead of the deprecated `stock_info_csrc_main`. Returns proper 门类/大类/中类 structure.
+
+### THS Industry Classification (JTB-011)
+**Location**: `src/backend/app/utils/akshare_client.py`
+**Implementation**: `get_industry_ths()` method now exists and provides THS industry classification.
 
 ---
 
@@ -229,10 +228,10 @@ npm run lint
 - [x] Implement logging infrastructure (JTB-101 through JTB-108)
 
 ### v0.4.0 - Feature Completion
-- [ ] Add THS industry classification
-- [ ] Implement CSRC 3-level hierarchy
-- [ ] Display N/A for missing data
-- [ ] Show available_years to users
+- [x] Add THS industry classification
+- [x] Implement CSRC 3-level hierarchy
+- [x] Display N/A for missing data
+- [x] Show available_years to users
 
 ### v0.5.0 - Documentation & Polish
 - [ ] Add integration tests
