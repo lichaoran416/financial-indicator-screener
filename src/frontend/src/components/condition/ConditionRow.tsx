@@ -56,6 +56,10 @@ export default function ConditionRow(props: ConditionRowProps) {
     props.onUpdate({ ...props.condition, period });
   };
 
+  const handleYearsChange = (years: number) => {
+    props.onUpdate({ ...props.condition, years });
+  };
+
   return (
     <div
       style={{
@@ -151,6 +155,25 @@ export default function ConditionRow(props: ConditionRowProps) {
               <option value="annual">Annual</option>
             </select>
           </div>
+          <div style={{ display: 'flex', 'flex-direction': 'column', gap: '0.25rem' }}>
+            <label style={{ 'font-size': '0.75rem', color: '#666' }}>Years</label>
+            <input
+              type="number"
+              min="1"
+              max="10"
+              value={props.condition.years ?? 1}
+              onChange={(e) => handleYearsChange(parseInt(e.currentTarget.value) || 1)}
+              style={{
+                padding: '0.5rem',
+                'border-radius': '4px',
+                'border': '1px solid #ddd',
+                'font-size': '0.875rem',
+                'min-width': '80px',
+                background: 'white',
+                cursor: 'pointer'
+              }}
+            />
+          </div>
           <button
             type="button"
             onClick={() => props.onDelete()}
@@ -202,6 +225,25 @@ export default function ConditionRow(props: ConditionRowProps) {
               <option value="quarterly">Quarterly</option>
               <option value="annual">Annual</option>
             </select>
+          </div>
+          <div style={{ display: 'flex', 'flex-direction': 'column', gap: '0.25rem' }}>
+            <label style={{ 'font-size': '0.75rem', color: '#666' }}>Years</label>
+            <input
+              type="number"
+              min="1"
+              max="10"
+              value={props.condition.years ?? 1}
+              onChange={(e) => handleYearsChange(parseInt(e.currentTarget.value) || 1)}
+              style={{
+                padding: '0.5rem',
+                'border-radius': '4px',
+                'border': '1px solid #ddd',
+                'font-size': '0.875rem',
+                'min-width': '80px',
+                background: 'white',
+                cursor: 'pointer'
+              }}
+            />
           </div>
           <button
             type="button"

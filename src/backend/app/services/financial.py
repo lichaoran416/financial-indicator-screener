@@ -240,6 +240,9 @@ class FinancialService:
             if revenue and total_cost and revenue > 0:
                 metrics["gross_margin"] = (revenue - total_cost) / revenue * 100
 
+            if net_profit is not None:
+                metrics["net_profit"] = net_profit
+
             if period != Period.TTM.value:
                 if net_profit and previous_net_profit and previous_net_profit != 0:
                     metrics["net_profit_growth"] = (
@@ -317,6 +320,7 @@ class FinancialService:
     async def screen_companies(
         self,
         conditions: list[dict[str, Any]],
+        logic: str = "and",
         sort_by: Optional[str] = None,
         order: str = "desc",
         sort_by_2: Optional[str] = None,
@@ -334,7 +338,7 @@ class FinancialService:
     ) -> dict[str, Any]:
         period = conditions[0].get("period", "annual") if conditions else "annual"
         years = conditions[0].get("years", 5) if conditions else 5
-        cache_key = f"screen:{hash(str(conditions))}:{sort_by}:{order}:{sort_by_2}:{order_2}:{limit}:{page}:{industry}:{exclude_industry}:{industries}:{exclude_industries}:{include_suspended}:{profit_only}:{include_st}:{require_complete_data}:{period}:{years}"
+        cache_key = f"screen:{hash(str(conditions))}:{logic}:{sort_by}:{order}:{sort_by_2}:{order_2}:{limit}:{page}:{industry}:{exclude_industry}:{industries}:{exclude_industries}:{include_suspended}:{profit_only}:{include_st}:{require_complete_data}:{period}:{years}"
         cached = await redis_manager.get_json(cache_key)
         if cached:
             return cast(dict[str, Any], cached)
@@ -391,7 +395,7 @@ class FinancialService:
                 if not self._has_complete_metrics(metrics, len(conditions)):
                     continue
 
-            if self._evaluate_conditions(company, conditions):
+            if self._evaluate_conditions(company, conditions, logic):
                 screened.append(company)
 
         if sort_by:
@@ -429,50 +433,58 @@ class FinancialService:
         return present_count >= min(num_conditions, 3)
 
     def _evaluate_conditions(
-        self, company: dict[str, Any], conditions: list[dict[str, Any]]
+        self, company: dict[str, Any], conditions: list[dict[str, Any]], logic: str = "and"
     ) -> bool:
         metrics = company.get("metrics", {})
 
-        for condition in conditions:
-            metric = condition.get("metric")
-            formula = condition.get("formula")
-            operator = condition.get("operator")
-            value = condition.get("value")
-            value2 = condition.get("value2")
+        if logic.lower() == "or":
+            for condition in conditions:
+                if self._check_single_condition(condition, metrics):
+                    return True
+            return False
+        else:
+            for condition in conditions:
+                if not self._check_single_condition(condition, metrics):
+                    return False
+            return True
 
-            metric_value: Optional[float] = None
+    def _check_single_condition(self, condition: dict[str, Any], metrics: dict[str, Any]) -> bool:
+        metric = condition.get("metric")
+        formula = condition.get("formula")
+        operator = condition.get("operator")
+        value = condition.get("value")
+        value2 = condition.get("value2")
 
-            if formula:
-                try:
-                    valid, error = validate(formula)
-                    if not valid:
-                        return False
-                    ast = parse(formula)
-                    metric_value = evaluate(ast, metrics)
-                except (FormulaLexerError, FormulaParserError, FormulaEvaluatorError):
+        metric_value: Optional[float] = None
+
+        if formula:
+            try:
+                valid, error = validate(formula)
+                if not valid:
                     return False
-            elif metric:
-                if metric not in metrics:
-                    return False
-                metric_value = metrics.get(metric)
-                if metric_value is None:
-                    return False
-                metric_value = float(metric_value)
-            else:
+                ast = parse(formula)
+                metric_value = evaluate(ast, metrics)
+            except (FormulaLexerError, FormulaParserError, FormulaEvaluatorError):
                 return False
-
+        elif metric:
+            if metric not in metrics:
+                return False
+            metric_value = metrics.get(metric)
             if metric_value is None:
                 return False
+            metric_value = float(metric_value)
+        else:
+            return False
 
-            if not self._compare(
-                metric_value,
-                str(operator) if operator else "",
-                float(value) if value else 0.0,
-                float(value2) if value2 else None,
-            ):
-                return False
+        if metric_value is None:
+            return False
 
-        return True
+        return self._compare(
+            metric_value,
+            str(operator) if operator else "",
+            float(value) if value else 0.0,
+            float(value2) if value2 else None,
+        )
 
     def _compare(
         self,

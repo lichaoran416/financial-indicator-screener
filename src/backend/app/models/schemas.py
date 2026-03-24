@@ -29,8 +29,12 @@ class RiskFlag(str, Enum):
 
 
 class Condition(BaseModel):
-    metric: Optional[str] = Field(default=None, description="Metric identifier (use metric OR formula, not both)")
-    formula: Optional[str] = Field(default=None, description="Custom formula expression (e.g., 'roe / roi')")
+    metric: Optional[str] = Field(
+        default=None, description="Metric identifier (use metric OR formula, not both)"
+    )
+    formula: Optional[str] = Field(
+        default=None, description="Custom formula expression (e.g., 'roe / roi')"
+    )
     operator: str = Field(..., description="Comparison operator (>, <, >=, <=, ==, !=, between)")
     value: float = Field(..., description="Value to compare against")
     value2: Optional[float] = Field(default=None, description="Second value for between operator")
@@ -41,6 +45,9 @@ class Condition(BaseModel):
 class ScreenRequest(BaseModel):
     conditions: list[Condition] = Field(
         default_factory=list, description="List of screening conditions"
+    )
+    logic: Optional[str] = Field(
+        default="and", description="Logic operator for conditions: 'and' or 'or'"
     )
     sort_by: Optional[str] = Field(default=None, description="Primary metric to sort by")
     order: SortOrder = Field(default=SortOrder.DESC, description="Primary sort order")

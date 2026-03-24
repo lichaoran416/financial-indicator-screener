@@ -21,6 +21,7 @@ SAVED_SCREENS_KEY = "saved_screens"
 
 async def get_companies_from_financial_service(
     conditions: List[Condition],
+    logic: str = "and",
     industry: str | None = None,
     exclude_industry: str | None = None,
     industries: List[str] | None = None,
@@ -41,6 +42,7 @@ async def get_companies_from_financial_service(
     conditions_dicts = [cond.model_dump() for cond in conditions]
     result = await financial_service.screen_companies(
         conditions=conditions_dicts,
+        logic=logic,
         industry=industry,
         exclude_industry=exclude_industry,
         industries=industries,
@@ -69,6 +71,7 @@ async def screen_companies_endpoint(request: ScreenRequest) -> ScreenResponse:
     try:
         companies, total = await get_companies_from_financial_service(
             conditions=request.conditions,
+            logic=request.logic or "and",
             industry=request.industry,
             exclude_industry=request.exclude_industry,
             industries=request.industries,

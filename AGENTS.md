@@ -11,7 +11,7 @@ npm run build  # Production build
 **Backend (FastAPI)**
 ```bash
 cd src/backend
-pip install -r requirements.txt
+source .venv/bin/activate
 uvicorn main:app --reload
 ```
 
@@ -22,9 +22,27 @@ redis-server
 
 ## Validation
 
-- Tests: `pytest src/backend/tests/` (backend) / `npm test` (frontend)
-- Typecheck: `mypy src/backend/` (backend) / `npm run typecheck` (frontend)
-- Lint: `ruff check src/backend/` (backend) / `npm run lint` (frontend)
+**Backend Tests**
+```bash
+cd src/backend && source .venv/bin/activate && pytest tests/ -v --tb=short
+```
+
+**Frontend Tests**
+```bash
+cd src/frontend
+npm test
+```
+
+**Typecheck & Lint**
+```bash
+# Backend
+mypy src/backend/
+ruff check src/backend/
+
+# Frontend
+npm run typecheck
+npm run lint
+```
 
 ## Known Issues
 
@@ -44,11 +62,12 @@ redis-server
 ```
 src/
 ├── frontend/              # Solid.js frontend
-│   ├── components/       # UI components
-│   ├── pages/            # Route pages
-│   ├── stores/           # State management
-│   ├── api/              # API client
-│   └── tests/            # Frontend tests
+│   ├── src/              # Source code
+│   │   ├── components/  # UI components
+│   │   ├── stores/      # State management
+│   │   └── api/         # API client
+│   ├── tests/           # Frontend tests
+│   └── dist/            # Production build output
 │
 └── backend/              # FastAPI backend
     ├── api/v1/           # API endpoints

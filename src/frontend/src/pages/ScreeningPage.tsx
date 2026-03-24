@@ -2,7 +2,7 @@ import { createSignal, createEffect, onMount, Show, For } from 'solid-js';
 import { ConditionBuilder, defaultCondition } from '../components/condition';
 import { ResultsTable, Pagination, ExportButton } from '../components/results';
 import { LoadingSpinner, ErrorState, EmptyState, TimeoutState } from '../components/common';
-import { screenCompanies, Condition, SortOrder } from '../api/screen';
+import { screenCompanies, saveScreen, Condition, SortOrder } from '../api/screen';
 import type { CompanyInfo } from '../api/screen';
 import { getMetrics, MetricInfo } from '../api/metrics';
 import { getCSRCIndustries, getSWIndustries } from '../api/company';
@@ -105,6 +105,7 @@ export default function ScreeningPage() {
     try {
       const request = {
         conditions: conditions(),
+        logic: logic(),
         sort_by: sortColumn() || undefined,
         order: sortOrder(),
         sort_by_2: sortColumn2() || undefined,
@@ -214,6 +215,17 @@ export default function ScreeningPage() {
   const handleClearComparison = () => {
     setSelectedForComparison([]);
     setShowTrendChart(false);
+  };
+
+  const handleSaveScreen = async () => {
+    const name = window.prompt('Enter a name for this screen:');
+    if (!name) return;
+    try {
+      await saveScreen({ name, conditions: conditions() });
+      window.alert('Screen saved successfully!');
+    } catch (e) {
+      window.alert('Failed to save screen');
+    }
   };
 
   const totalPages = () => Math.ceil(total() / limit());
@@ -401,6 +413,23 @@ export default function ScreeningPage() {
               </button>
             </Show>
           </div>
+
+          <button
+            type="button"
+            onClick={handleSaveScreen}
+            disabled={conditions().length === 0}
+            style={{
+              padding: '0.25rem 0.5rem',
+              'border-radius': '4px',
+              border: '1px solid #4caf50',
+              background: conditions().length === 0 ? '#f5f5f5' : '#fff',
+              color: conditions().length === 0 ? '#ccc' : '#4caf50',
+              'font-size': '0.75rem',
+              cursor: conditions().length === 0 ? 'not-allowed' : 'pointer',
+            }}
+          >
+            Save Screen
+          </button>
         </Show>
       </section>
 

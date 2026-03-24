@@ -145,8 +145,6 @@ class FormulaParser:
         raise FormulaParserError(f"Unexpected token: {token.value}", token.position)
 
     def parse_time_series(self, metric_name: str) -> ASTNode:
-        self.advance()
-
         if self.current_token is None or self.current_token.type != TokenType.LBRACKET:
             raise FormulaParserError("Expected '[' after metric name", self.pos)
 

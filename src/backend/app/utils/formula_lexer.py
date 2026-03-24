@@ -12,6 +12,7 @@ class TokenType(Enum):
     LBRACKET = "LBRACKET"
     RBRACKET = "RBRACKET"
     COMMA = "COMMA"
+    COLON = "COLON"
     FUNCTION = "FUNCTION"
     EOF = "EOF"
 
@@ -127,6 +128,10 @@ class FormulaLexer:
             if self.current_char == ",":
                 self.advance()
                 return Token(TokenType.COMMA, ",", start_pos)
+
+            if self.current_char == ":":
+                self.advance()
+                return Token(TokenType.COLON, ":", start_pos)
 
             raise FormulaLexerError(f"Unexpected character: '{self.current_char}'", start_pos)
 
