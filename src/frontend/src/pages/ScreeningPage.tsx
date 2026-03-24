@@ -533,8 +533,9 @@ export default function ScreeningPage() {
             <ResultsTable
               companies={companies()}
               onSort={handleSort}
-              sortColumn={sortColumn() as keyof CompanyInfo | null}
+              sortColumn={sortColumn()}
               sortOrder={sortOrder()}
+              conditions={conditions()}
             />
           </Show>
 

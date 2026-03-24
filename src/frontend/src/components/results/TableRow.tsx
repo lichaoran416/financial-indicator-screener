@@ -1,9 +1,10 @@
-import { Component, Show } from 'solid-js';
+import { Component, For, Show } from 'solid-js';
 import { CompanyInfo } from '../../api/screen';
 import styles from './TableRow.module.css';
 
 interface TableRowProps {
   company: CompanyInfo;
+  metricColumns?: string[];
 }
 
 const statusColors: Record<CompanyInfo['status'], string> = {
@@ -26,7 +27,21 @@ const riskWarnings: Record<CompanyInfo['risk_flag'], string> = {
   DELISTING_RISK: 'At risk of delisting - Company may be removed from the exchange. Extremely high risk.',
 };
 
+const formatMetricValue = (value: number | null | undefined): string => {
+  if (value === null || value === undefined) {
+    return 'N/A';
+  }
+  return value.toFixed(2);
+};
+
+const isNegativeValue = (value: number | null | undefined): boolean => {
+  return value !== null && value !== undefined && value < 0;
+};
+
 const TableRow: Component<TableRowProps> = (props) => {
+  const metrics = () => props.company.metrics || {};
+  const metricColumns = () => props.metricColumns || [];
+
   return (
     <tr class={styles.row}>
       <td>
@@ -35,6 +50,11 @@ const TableRow: Component<TableRowProps> = (props) => {
         </a>
       </td>
       <td>{props.company.name}</td>
+      <td>
+        <span style={{ color: '#666', 'font-size': '0.75rem' }}>
+          {props.company.available_years ? `${props.company.available_years}y` : '-'}
+        </span>
+      </td>
       <td>{props.company.industry || '-'}</td>
       <td>
         <span
@@ -59,6 +79,22 @@ const TableRow: Component<TableRowProps> = (props) => {
           </Show>
         </div>
       </td>
+      <For each={metricColumns()}>
+        {(metric) => {
+          const value = () => metrics()[metric];
+          const isNegative = () => isNegativeValue(value());
+          return (
+            <td
+              class={styles.metricCell}
+              style={{ color: isNegative() ? '#ef4444' : '#111827' }}
+            >
+              <span style={{ 'font-weight': isNegative() ? '600' : '400' }}>
+                {formatMetricValue(value())}
+              </span>
+            </td>
+          );
+        }}
+      </For>
     </tr>
   );
 };

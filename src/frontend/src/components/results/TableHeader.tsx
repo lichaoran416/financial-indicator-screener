@@ -1,13 +1,13 @@
 import { Component, Show } from 'solid-js';
-import { CompanyInfo, SortOrder } from '../../api/screen';
+import { SortOrder } from '../../api/screen';
 import styles from './TableHeader.module.css';
 
 interface TableHeaderProps {
-  column: keyof CompanyInfo;
+  column: string;
   label: string;
-  currentSort: keyof CompanyInfo | null;
+  currentSort: string | null;
   sortOrder: SortOrder;
-  onSort: (column: keyof CompanyInfo) => void;
+  onSort: (column: string) => void;
 }
 
 const TableHeader: Component<TableHeaderProps> = (props) => {

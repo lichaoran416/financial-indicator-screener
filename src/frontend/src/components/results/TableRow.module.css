@@ -16,3 +16,7 @@
   font-weight: 500;
   text-transform: capitalize;
 }
+
+.metricCell {
+  font-variant-numeric: tabular-nums;
+}
