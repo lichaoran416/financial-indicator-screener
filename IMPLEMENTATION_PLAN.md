@@ -263,6 +263,7 @@ key=lambda x: x.get("metrics", {}).get(sort_by) or 0
 ### GAP-F3: ConditionTree Shows "Unknown metric" for Formulas
 **Location**: `src/frontend/src/components/condition/ConditionTree.tsx:193`
 **Issue**: Should check `condition.formula` as fallback like ResultsTable.tsx does with `cond.metric || cond.formula`.
+**Status**: [x] FIXED - Changed `condition.metric || 'Unknown metric'` to `condition.metric || condition.formula || 'Unknown metric'`
 
 ### GAP-F4: CSV Export Does NOT Include Calculated Metrics
 **Location**: `src/frontend/src/components/results/ExportButton.tsx:13-19`

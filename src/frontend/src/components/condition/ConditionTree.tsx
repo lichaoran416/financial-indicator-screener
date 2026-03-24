@@ -190,7 +190,7 @@ export default function ConditionTree(props: ConditionTreeProps) {
                           color: '#1f2937',
                           'font-size': '0.875rem',
                         }}>
-                          {condition.metric || 'Unknown metric'}
+                          {condition.metric || condition.formula || 'Unknown metric'}
                         </span>
                         <span style={{
                           color: '#6b7280',
