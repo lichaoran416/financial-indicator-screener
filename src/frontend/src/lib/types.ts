@@ -12,29 +12,13 @@ export enum RiskFlag {
 }
 
 export interface Condition {
-  metric: string;
+  metric?: string;
+  formula?: string;
   operator: string;
   value: number;
-  period?: string;
+  value2?: number;
+  period?: 'annual' | 'quarterly' | 'ttm';
   years?: number;
-}
-
-export interface ScreenRequest {
-  conditions: Condition[];
-  logic?: 'and' | 'or';
-}
-
-export interface ScreenResponse {
-  companies: CompanyResult[];
-  total: number;
-}
-
-export interface CompanyResult {
-  code: string;
-  name: string;
-  status: CompanyStatus;
-  riskFlag: RiskFlag;
-  industry?: string;
 }
 
 export interface MetricInfo {
@@ -43,38 +27,6 @@ export interface MetricInfo {
   category: string;
   unit?: string;
   description?: string;
-}
-
-export interface MetricsListResponse {
-  metrics: MetricInfo[];
-  categories: string[];
-}
-
-export interface SavedScreen {
-  id: string;
-  name: string;
-  conditions: Condition[];
-  created_at: string;
-}
-
-export interface CustomFormula {
-  id: string;
-  name: string;
-  formula: string;
-  description?: string;
-  createdAt?: string;
-}
-
-export interface FormulaValidationResult {
-  valid: boolean;
-  error?: string;
-  ast?: Record<string, unknown>;
-}
-
-export interface FormulaEvaluationResult {
-  success: boolean;
-  error?: string;
-  result?: number;
 }
 
 export interface IndustryClassification {

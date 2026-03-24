@@ -1,23 +1,20 @@
 import { createStore } from 'solid-js/store';
+import type { CompanyInfo as APICompanyInfo, Period as APIPeriod } from '../api/screen';
 
-export type Period = 'annual' | 'quarterly' | 'ttm';
+export type Period = APIPeriod;
 export type SortOrder = 'asc' | 'desc';
 
 export interface Condition {
-  metric: string;
+  metric?: string;
+  formula?: string;
   operator: string;
   value: number;
+  value2?: number;
   period?: Period;
   years?: number;
 }
 
-export interface CompanyInfo {
-  code: string;
-  name: string;
-  status: 'ACTIVE' | 'SUSPENDED' | 'DELISTED';
-  risk_flag: 'NORMAL' | 'ST' | 'STAR_ST' | 'DELISTING_RISK';
-  industry?: string;
-}
+export interface CompanyInfo extends APICompanyInfo {}
 
 interface ScreeningState {
   conditions: Condition[];

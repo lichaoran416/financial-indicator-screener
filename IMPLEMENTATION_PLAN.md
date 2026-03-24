@@ -31,7 +31,7 @@
 
 ### High Priority Gaps
 
-- [ ] **GAP-F1** Type inconsistency - Three different Condition definitions in `api/screen.ts`, `stores/screeningStore.ts`, `lib/types.ts` with mismatched fields
+- [x] **GAP-F1** Type inconsistency - Three different Condition definitions in `api/screen.ts`, `stores/screeningStore.ts`, `lib/types.ts` with mismatched fields [FIXED: Unified Condition type across all files, now includes metric?, formula?, value2?, period types]
 - [x] **GAP-F2** `OperatorSelector.tsx:43` - ~~Duplicate import `from 'solid-js'`~~ **VERIFIED NOT A BUG**: Only one import exists
 - [x] **GAP-F3** `ConditionTree.tsx:193` - Shows "Unknown metric" when formula is used instead of metric (should check `condition.formula` as fallback) [FIXED]
 - [x] **GAP-F4** `ExportButton.tsx:13-19` - CSV export only includes company info (Code, Name, Industry, Status, Risk Flag), does NOT include calculated metrics or available_years [FIXED]
@@ -355,7 +355,7 @@ npm run lint
 - [x] Add formula update API endpoint (BUG-H7)
 - [x] Fix secondary sorting not being passed (BUG-H8)
 - [x] Fix sort key causing missing data to sort to top (BUG-H9)
-- [ ] Fix frontend type inconsistencies (GAP-F1)
+- [x] Fix frontend type inconsistencies (GAP-F1) - Unified Condition type across api/screen.ts, stores/screeningStore.ts, lib/types.ts
 - [x] Show formula name in ConditionTree for formula conditions (GAP-F3) - condition.metric || condition.formula
 - [x] Include calculated metrics in CSV export (GAP-F4) - ExportButton now exports available_years and metrics
 - [ ] Implement squarified TreeMap algorithm (GAP-F5)
