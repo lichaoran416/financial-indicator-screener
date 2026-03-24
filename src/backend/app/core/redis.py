@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Optional, cast
 import json
 
 import redis.asyncio as redis
@@ -23,18 +23,27 @@ class RedisManager:
             self._client = None
 
     async def get(self, key: str) -> Optional[str]:
-        return await self._client.get(key)
+        if self._client is None:
+            raise RuntimeError("Redis not connected. Call connect() first.")
+        result = await self._client.get(key)
+        return cast(Optional[str], result)
 
     async def set(self, key: str, value: str, ttl: Optional[int] = None) -> None:
+        if self._client is None:
+            raise RuntimeError("Redis not connected. Call connect() first.")
         if ttl:
             await self._client.setex(key, ttl, value)
         else:
             await self._client.set(key, value)
 
     async def delete(self, key: str) -> None:
+        if self._client is None:
+            raise RuntimeError("Redis not connected. Call connect() first.")
         await self._client.delete(key)
 
     async def exists(self, key: str) -> bool:
+        if self._client is None:
+            raise RuntimeError("Redis not connected. Call connect() first.")
         return bool(await self._client.exists(key))
 
     async def get_json(self, key: str) -> Optional[Any]:

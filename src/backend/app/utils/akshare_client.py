@@ -1,7 +1,7 @@
 import asyncio
-from typing import Any, Optional
-import pandas as pd
-import akshare as ak
+from typing import Any, Optional, cast
+import pandas as pd  # type: ignore[import-untyped]
+import akshare as ak  # type: ignore[import-untyped]
 
 
 class AkshareAPIError(Exception):
@@ -167,7 +167,7 @@ class AkshareClient:
             df = await self.get_financial_indicators(symbol, start_year, end_year)
             if df is None or df.empty:
                 return {}
-            return df.to_dict(orient="list")
+            return cast(dict[str, Any], df.to_dict(orient="list"))
         except AkshareAPIError:
             return {}
         except Exception as e:

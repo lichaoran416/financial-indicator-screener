@@ -1,9 +1,9 @@
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from app.services.formula_service import formula_service
+from app.services.formula_service import Formula, formula_service
 
 
 router = APIRouter(prefix="/formula", tags=["formula"])
@@ -87,12 +87,13 @@ async def save_formula(request: FormulaSaveRequest) -> FormulaResponse:
     if not success:
         raise HTTPException(status_code=400, detail=error or "Failed to save formula")
 
+    saved_formula = cast(Formula, formula)
     return FormulaResponse(
-        id=formula.id,
-        name=formula.name,
-        formula=formula.formula,
-        description=formula.description,
-        created_at=formula.created_at.isoformat() if formula.created_at else None,
+        id=saved_formula.id,
+        name=saved_formula.name,
+        formula=saved_formula.formula,
+        description=saved_formula.description,
+        created_at=saved_formula.created_at.isoformat() if saved_formula.created_at else None,
     )
 
 

@@ -155,7 +155,7 @@ class FormulaParser:
         if self.current_token is None:
             raise FormulaParserError("Unexpected end of formula in time series", self.pos)
 
-        year_or_range: Union[int, tuple[int, int]] = None
+        year_or_range: Optional[Union[int, tuple[int, int]]] = None
 
         if self.current_token.type == TokenType.NUMBER:
             year_val = int(self.current_token.value)

@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Optional, cast
 from app.utils.akshare_client import akshare_client
 from app.core.redis import redis_manager
 from app.models.schemas import Period, CompanyStatus, RiskFlag
@@ -77,7 +77,7 @@ class FinancialService:
         cache_key = "company:list:all"
         cached = await redis_manager.get_json(cache_key)
         if cached:
-            return cached
+            return cast(list[dict[str, Any]], cached)
 
         stocks = await akshare_client.get_stock_list()
         result = []
@@ -191,7 +191,7 @@ class FinancialService:
     def _extract_financial_metrics(
         self, financial_data: dict[str, Any], period: str = "annual"
     ) -> dict[str, Any]:
-        metrics = {}
+        metrics: dict[str, Any] = {}
         if not financial_data:
             return metrics
 
@@ -316,7 +316,7 @@ class FinancialService:
         cache_key = f"screen:{hash(str(conditions))}:{sort_by}:{order}:{sort_by_2}:{order_2}:{limit}:{page}:{industry}:{exclude_industry}:{industries}:{exclude_industries}:{include_suspended}:{profit_only}:{include_st}:{require_complete_data}:{period}:{years}"
         cached = await redis_manager.get_json(cache_key)
         if cached:
-            return cached
+            return cast(dict[str, Any], cached)
 
         companies = await self.get_company_list()
         screened = []
@@ -424,7 +424,12 @@ class FinancialService:
             if metric_value is None:
                 return False
 
-            if not self._compare(metric_value, operator, value, value2):
+            if not self._compare(
+                float(metric_value),
+                str(operator) if operator else "",
+                float(value) if value else 0.0,
+                float(value2) if value2 else None,
+            ):
                 return False
 
         return True
@@ -487,9 +492,10 @@ class FinancialService:
         balance = financial_data.get("balance", {})
         total_assets = self._find_column_value(balance, ["资产合计"])
         current_liabilities = self._find_column_value(balance, ["流动负债合计", "流动负债"])
+        total_investment: Optional[float] = None
         if total_assets and current_liabilities:
             total_investment = total_assets - current_liabilities
-        else:
+        elif total_assets:
             total_investment = total_assets
         if net_profit and total_investment and total_investment > 0:
             return net_profit / total_investment * 100
@@ -557,7 +563,7 @@ class FinancialService:
         return None
 
     def _calculate_pe(self, financial_data: dict[str, Any]) -> Optional[float]:
-        market_cap = None
+        market_cap: Any = None
         if "metrics" in financial_data:
             market_cap = financial_data["metrics"].get("market_cap")
         if not market_cap:
@@ -567,11 +573,11 @@ class FinancialService:
             return None
         net_profit = self._find_column_value(income, ["净利润"])
         if net_profit and net_profit > 0:
-            return market_cap / net_profit
+            return float(market_cap) / net_profit
         return None
 
     def _calculate_pb(self, financial_data: dict[str, Any]) -> Optional[float]:
-        market_cap = None
+        market_cap: Any = None
         if "metrics" in financial_data:
             market_cap = financial_data["metrics"].get("market_cap")
         if not market_cap:
@@ -581,7 +587,7 @@ class FinancialService:
             return None
         equity = self._find_column_value(balance, ["所有者权益合计", "股东权益", "净资产"])
         if equity and equity > 0:
-            return market_cap / equity
+            return float(market_cap) / equity
         return None
 
     async def get_company_metrics_time_series(
