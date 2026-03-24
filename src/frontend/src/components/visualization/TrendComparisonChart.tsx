@@ -15,6 +15,7 @@ import {
 } from 'chart.js';
 import apiClient from '../../api/client';
 import type { CompanyInfo } from '../../api/screen';
+import { getDisclosureDates } from '../../api/company';
 
 Chart.register(
   LineController,
@@ -70,13 +71,6 @@ const TREND_COLORS = [
   { bg: 'rgba(33, 150, 243, 0.1)', border: 'rgba(33, 150, 243, 1)' },
 ];
 
-const FINANCIAL_REPORT_ANNOTATIONS: Record<string, { label: string; color: string }> = {
-  '04-30': { label: 'Q1', color: 'rgba(76, 175, 80, 0.5)' },
-  '08-31': { label: 'Q2', color: 'rgba(255, 152, 0, 0.5)' },
-  '10-31': { label: 'Q3', color: 'rgba(255, 193, 7, 0.5)' },
-  '03-31': { label: 'Q4', color: 'rgba(244, 67, 54, 0.5)' },
-};
-
 export const TrendComparisonChart: Component<TrendComparisonChartProps> = (props) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let canvasRef: any;
@@ -87,6 +81,7 @@ export const TrendComparisonChart: Component<TrendComparisonChartProps> = (props
   const [leftMetric, setLeftMetric] = createSignal<string>('roe');
   const [rightMetric, setRightMetric] = createSignal<string>('roi');
   const [timeRange, setTimeRange] = createSignal<TimeRange>('ALL');
+  const [disclosureDates, setDisclosureDates] = createSignal<Record<string, string>>({});
 
   const availableMetrics = ['roe', 'roi', 'gross_margin', 'net_profit_growth', 'revenue_growth', 'debt_ratio', 'current_ratio'];
 
@@ -130,21 +125,10 @@ export const TrendComparisonChart: Component<TrendComparisonChartProps> = (props
     });
   });
 
-  const reportDateIndices = createMemo(() => {
-    const indices: number[] = [];
-    const dates = filteredDates();
-    dates.forEach((date, idx) => {
-      const monthDay = date.substring(5);
-      if (FINANCIAL_REPORT_ANNOTATIONS[monthDay]) {
-        indices.push(idx);
-      }
-    });
-    return indices;
-  });
-
   const fetchTrendData = async () => {
     if (props.selectedCompanies.length === 0) {
       setTrendData(null);
+      setDisclosureDates({});
       return;
     }
 
@@ -161,6 +145,15 @@ export const TrendComparisonChart: Component<TrendComparisonChartProps> = (props
       });
 
       setTrendData(response.data);
+
+      const disclosureResponse = await getDisclosureDates(codes);
+      const datesMap: Record<string, string> = {};
+      disclosureResponse.disclosure_dates.forEach((item) => {
+        if (item.disclosure_date) {
+          datesMap[item.code] = item.disclosure_date;
+        }
+      });
+      setDisclosureDates(datesMap);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to fetch trend data');
       setTrendData(null);
@@ -407,7 +400,7 @@ export const TrendComparisonChart: Component<TrendComparisonChartProps> = (props
         </button>
       </div>
 
-      <Show when={reportDateIndices().length > 0}>
+      <Show when={Object.keys(disclosureDates()).length > 0}>
         <div style={{
           display: 'flex',
           'align-items': 'center',
@@ -416,21 +409,30 @@ export const TrendComparisonChart: Component<TrendComparisonChartProps> = (props
           background: '#f5f5f5',
           'border-radius': '4px',
           'font-size': '0.75rem',
+          'flex-wrap': 'wrap',
         }}>
-          <span style={{ color: '#666' }}>Financial Report Dates:</span>
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <For each={Object.entries(FINANCIAL_REPORT_ANNOTATIONS)}>
-              {([date, info]) => (
-                <div style={{ display: 'flex', 'align-items': 'center', gap: '0.25rem' }}>
-                  <div style={{
-                    width: '12px',
-                    height: '12px',
-                    background: info.color,
-                    'border-radius': '2px',
-                  }} />
-                  <span style={{ color: '#666' }}>{info.label} ({date})</span>
-                </div>
-              )}
+          <span style={{ color: '#666' }}>Annual Report Disclosure Dates:</span>
+          <div style={{ display: 'flex', gap: '0.75rem', 'flex-wrap': 'wrap' }}>
+            <For each={props.selectedCompanies}>
+              {(company) => {
+                const date = () => disclosureDates()[company.code];
+                return (
+                  <Show when={date()}>
+                    <div style={{
+                      display: 'flex',
+                      'align-items': 'center',
+                      gap: '0.25rem',
+                      padding: '0.125rem 0.375rem',
+                      background: '#fff',
+                      border: '1px solid #ddd',
+                      'border-radius': '3px',
+                    }}>
+                      <span style={{ 'font-weight': '500', color: '#333' }}>{company.code}:</span>
+                      <span style={{ color: '#666' }}>{date()}</span>
+                    </div>
+                  </Show>
+                );
+              }}
             </For>
           </div>
         </div>

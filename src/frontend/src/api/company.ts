@@ -42,3 +42,21 @@ export const getPeerComparison = async (
   const response = await apiClient.post<PeerComparisonResponse>("/company/compare", request);
   return response.data;
 };
+
+export interface DisclosureDateRequest {
+  codes: string[];
+}
+
+export interface DisclosureDateResponse {
+  disclosure_dates: Array<{
+    code: string;
+    disclosure_date?: string;
+  }>;
+}
+
+export const getDisclosureDates = async (
+  codes: string[]
+): Promise<DisclosureDateResponse> => {
+  const response = await apiClient.post<DisclosureDateResponse>("/company/disclosure-dates", { codes });
+  return response.data;
+};

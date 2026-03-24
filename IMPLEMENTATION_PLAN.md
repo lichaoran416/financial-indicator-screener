@@ -1,6 +1,6 @@
 # Implementation Plan - A股财务指标分析应用
 
-## Status: v0.6.0 - FIXED: NEW-1, NEW-2, NEW-3 (race condition, logging integration, track_duration), added test coverage for time series, multiple args, and division by zero in evaluate_list
+## Status: v0.7.0 - FIXED: NEW-6 (actual company-specific financial report disclosure dates from cninfo via stock_report_disclosure)
 
 ## CRITICAL CONSTRAINT: 只使用akshare提供的数据api, 不要使用其他数据api
 
@@ -56,7 +56,7 @@
 - [x] **NEW-3** `formula_service.py` has race condition potential - non-atomic read-modify-write pattern for save/update/delete [FIXED: Implemented atomic_update_json using WATCH/MULTI/EXEC pattern]
 - [x] **NEW-4** CACHE_TTL duplicated in `company.py:24` and `financial.py:10` (both hardcode 86400 instead of using `settings.CACHE_TTL`) [FIXED: Replaced with settings.CACHE_TTL in both files]
 - [x] **NEW-5** Export limited to current page only - cannot export all pages [FIXED: ExportButton now fetches all pages (up to 100 pages) before exporting]
-- [ ] **NEW-6** `TrendComparisonChart.tsx:73-78` - Financial report date annotations are hardcoded placeholders (Q1 on 04-30, Q2 on 08-31) not actual company-specific release dates
+- [x] **NEW-6** `TrendComparisonChart.tsx:73-78` - Financial report date annotations are hardcoded placeholders (Q1 on 04-30, Q2 on 08-31) not actual company-specific release dates [FIXED: Added get_disclosure_date() in akshare_client, new /company/disclosure-dates API endpoint, and updated TrendComparisonChart to fetch and display actual disclosure dates from cninfo]
 - [x] **NEW-7** THS industry classification implemented but not documented in specs/09_industry_comparison.md [FIXED: Documented in specs]
 - [x] **NEW-8** `akshare_client.py` - Data source discrepancy: spec says `stock_financial_report_sina` but code uses `stock_profit_sheet_by_report_em` for income data [FIXED: Updated specs/02_data_source.md]
 - [x] **NEW-9** Frontend npm dependencies may not be fully installed (eslint not found, TypeScript definition files missing) [FIXED: Dependencies installed, eslint and typecheck pass]
@@ -127,12 +127,13 @@
 - [x] GET /api/v1/industry/ths - THS industry
 - [x] POST /api/v1/company/compare - Peer comparison
 - [x] POST /api/v1/company/trend - Trend comparison
+- [x] POST /api/v1/company/disclosure-dates - Get actual financial report disclosure dates per company (NEW-6)
 - [x] POST /api/v1/formula/validate - Formula validation
 - [x] POST /api/v1/formula/evaluate - Formula evaluation
 - [x] POST /api/v1/formula/save - Save formula
 - [x] GET /api/v1/formula/saved - Get saved formulas
+- [x] PUT /api/v1/formula/{formula_id} - Update formula (BUG-H7 fixed)
 - [x] DELETE /api/v1/formula/{formula_id} - Delete formula
-- [x] PUT /api/v1/formula/{formula_id} - **MISSING** (BUG-H7)
 - [x] DELETE /api/v1/screen/saved/{screen_id} - Delete saved screen
 
 ### Industry Classification
@@ -385,4 +386,9 @@ npm run lint
 - [x] Add test coverage for multiple function arguments (NEW-3)
 - [x] Add test coverage for division by zero in evaluate_list() (NEW-3)
 
-(End of file - total 391 lines)
+### v0.7.0 - Report Disclosure Dates (COMPLETED)
+- [x] Add get_disclosure_date() function to akshare_client (NEW-6)
+- [x] Add POST /api/v1/company/disclosure-dates endpoint (NEW-6)
+- [x] Update TrendComparisonChart to fetch and display actual disclosure dates (NEW-6)
+
+(End of file - total 393 lines)

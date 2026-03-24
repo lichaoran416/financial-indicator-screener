@@ -204,3 +204,22 @@ class TrendComparisonResponse(BaseModel):
     )
     period: str = Field(..., description="Period type used")
     years: int = Field(..., description="Number of years of data")
+
+
+class DisclosureDateRequest(BaseModel):
+    codes: list[str] = Field(
+        ..., min_length=1, max_length=10, description="List of stock codes (1-10 companies)"
+    )
+
+
+class CompanyDisclosureDate(BaseModel):
+    code: str = Field(..., description="Stock code")
+    disclosure_date: Optional[str] = Field(
+        default=None, description="Actual disclosure date (YYYY-MM-DD)"
+    )
+
+
+class DisclosureDateResponse(BaseModel):
+    disclosure_dates: list[CompanyDisclosureDate] = Field(
+        default_factory=list, description="Disclosure dates for each company"
+    )

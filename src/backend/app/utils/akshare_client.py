@@ -489,6 +489,54 @@ class AkshareClient:
                 error=error_msg,
             )
 
+    async def get_disclosure_date(self, symbol: str, period: str = "annual") -> Optional[str]:
+        start_time = time.perf_counter()
+        success = False
+        error_msg = None
+        try:
+            normalized_symbol = self._normalize_symbol(symbol)
+            period_map = {
+                "annual": "最近四期的财报",
+            }
+            disclosure_period = period_map.get(period, "最近四期的财报")
+            df = await self._retry_async(
+                ak.stock_report_disclosure,
+                "沪深京",
+                disclosure_period,
+            )
+            if df is None or df.empty:
+                success = True
+                return None
+            stock_code = normalized_symbol.replace("SH", "").replace("SZ", "").replace("BJ", "")
+            for _, row in df.iterrows():
+                code = str(row.get("股票代码", "")).zfill(6)
+                if code == stock_code or code == normalized_symbol:
+                    actual_date = row.get("实际披露")
+                    if actual_date and pd.notna(actual_date):
+                        success = True
+                        return str(actual_date)[:10]
+                    first_date = row.get("首次预约")
+                    if first_date and pd.notna(first_date):
+                        success = True
+                        return str(first_date)[:10]
+            success = True
+            return None
+        except AkshareAPIError:
+            return None
+        except Exception as e:
+            error_msg = str(e)
+            return None
+        finally:
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            log_data_acquisition(
+                operation="get_disclosure_date",
+                symbol=symbol,
+                success=success,
+                duration_ms=duration_ms,
+                request_id=get_request_id(),
+                error=error_msg,
+            )
+
     @track_duration
     async def get_industry_peers(self, symbol: str, industry_type: str = "csrc") -> list[str]:
         start_time = time.perf_counter()

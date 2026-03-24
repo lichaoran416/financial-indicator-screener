@@ -18,6 +18,9 @@ from app.models.schemas import (
     MetricTrendPoint,
     MetricTrendData,
     CompanyTrendData,
+    DisclosureDateRequest,
+    DisclosureDateResponse,
+    CompanyDisclosureDate,
 )
 from app.utils.akshare_client import akshare_client
 
@@ -300,6 +303,26 @@ async def get_trend_comparison(request: TrendComparisonRequest) -> TrendComparis
         period=request.period.value,
         years=request.years,
     )
+
+    await redis_manager.set_json(cache_key, result.model_dump(), settings.CACHE_TTL)
+
+    return result
+
+
+@router.post("/company/disclosure-dates", response_model=DisclosureDateResponse)
+async def get_disclosure_dates(request: DisclosureDateRequest) -> DisclosureDateResponse:
+    cache_key = f"disclosure:{','.join(sorted(request.codes))}"
+
+    cached_data = await redis_manager.get_json(cache_key)
+    if cached_data:
+        return DisclosureDateResponse(**cached_data)
+
+    disclosure_dates: list[CompanyDisclosureDate] = []
+    for code in request.codes:
+        disclosure_date = await akshare_client.get_disclosure_date(code, period="annual")
+        disclosure_dates.append(CompanyDisclosureDate(code=code, disclosure_date=disclosure_date))
+
+    result = DisclosureDateResponse(disclosure_dates=disclosure_dates)
 
     await redis_manager.set_json(cache_key, result.model_dump(), settings.CACHE_TTL)
 
