@@ -273,9 +273,9 @@
 | specs/03_technical_architecture.md | Tech stack definition | ✅ Complete | Matches implementation |
 | specs/04_frontend.md | Frontend pages and components | ⚠️ Partial | Pages done; TreeMap created; FormulaEditor cancelled (removed); type mismatches remain |
 | specs/05_backend.md | API endpoints | ⚠️ Partial | Endpoints exist; undocumented endpoints (/industry/*, /formula/*, /cache/refresh) |
-| specs/06_ux.md | UX requirements | ⚠️ Partial | Lazy loading done; virtual scrolling/debounce missing |
+| specs/06_ux.md | UX requirements | ⚠️ Partial | Lazy loading done; debounce added; virtual scrolling missing |
 | specs/07_custom_formula.md | Custom formula engine | ⚠️ Partial | Lexer/parser/evaluator done; Bug 3 fixed; FormulaEditor cancelled (removed) |
-| specs/08_edge_cases.md | Edge case handling | ✅ Mostly | Status/risk flags done; ROE N/A done; warning text missing |
+| specs/08_edge_cases.md | Edge case handling | ✅ Mostly | Status/risk flags done; ROE N/A done; risk warning text added |
 | specs/09_industry_comparison.md | Industry comparison | ✅ Mostly | CSRC/SW APIs done; peer comparison, benchmark, radar chart done |
 | specs/10_visualization.md | Data visualization | ⚠️ Partial | RadarChart done; **TreeMap COMPLETED (required as default view)** |
 
@@ -312,8 +312,8 @@ npm run lint
 6. ~~[MEDIUM] Issue 3 (FormulaEditor)~~ - ❌ CANCELLED (FormulaEditor removed)
 7. ~~[MEDIUM] Issue 4 (OperatorSelector)~~ - ✅ IMPLEMENTED (`between` operator added)
 8. ~~[MEDIUM] Issue 6 (limit default)~~ - ✅ FIXED (changed to 100)
-9. **[LOW] Secondary sort UI** - Backend supports but frontend doesn't expose
-10. **[LOW] Edge case warning text** - Risk warnings show badges but no explanatory text
+9. ~~[LOW] Secondary sort UI~~ - ✅ IMPLEMENTED (Advanced Sort UI added)
+10. ~~[LOW] Edge case warning text~~ - ✅ IMPLEMENTED (warning text added to risk flags)
 
 ---
 
