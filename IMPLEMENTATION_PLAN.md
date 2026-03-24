@@ -268,6 +268,7 @@ key=lambda x: x.get("metrics", {}).get(sort_by) or 0
 ### GAP-F4: CSV Export Does NOT Include Calculated Metrics
 **Location**: `src/frontend/src/components/results/ExportButton.tsx:13-19`
 **Issue**: Only exports Code, Name, Industry, Status, Risk Flag. Does NOT export `metrics` or `available_years` from CompanyInfo.
+**Status**: [x] FIXED - Updated ExportButton to accept conditions prop and export available_years and metrics data matching what ResultsTable displays. Added CSV escaping for values with commas/quotes.
 
 ### GAP-F5: Non-Squarified TreeMap
 **Location**: `src/frontend/src/components/visualization/TreeMap.tsx:90-142`

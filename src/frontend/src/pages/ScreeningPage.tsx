@@ -439,7 +439,7 @@ export default function ScreeningPage() {
             Results {total() > 0 && <span style={{ 'font-weight': 'normal', color: '#666' }}>({total()} companies)</span>}
           </h2>
           <Show when={companies().length > 0}>
-            <ExportButton companies={companies()} />
+            <ExportButton companies={companies()} conditions={conditions()} />
           </Show>
         </div>
 
