@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from app.utils.formula_lexer import FormulaLexerError
@@ -33,7 +33,7 @@ class Formula:
         self.name = name
         self.formula = formula
         self.description = description
-        self.created_at = created_at or datetime.utcnow()
+        self.created_at = created_at or datetime.now(timezone.utc)
         self._ast: Optional[ASTNode] = None
         self._validation_error: Optional[str] = None
 
@@ -80,7 +80,7 @@ class Formula:
             description=data.get("description"),
             created_at=datetime.fromisoformat(data["created_at"])
             if data.get("created_at")
-            else datetime.utcnow(),
+            else datetime.now(timezone.utc),
         )
 
 

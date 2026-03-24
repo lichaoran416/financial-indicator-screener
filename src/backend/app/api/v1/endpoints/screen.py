@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 
 from fastapi import APIRouter, HTTPException
@@ -104,7 +104,7 @@ async def save_screen(request: SaveScreenRequest) -> SavedScreen:
         id=screen_id,
         name=request.name,
         conditions=request.conditions,
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
 
     index = await redis_manager.get_json(SAVED_SCREENS_INDEX_KEY) or []
