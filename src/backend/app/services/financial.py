@@ -304,6 +304,8 @@ class FinancialService:
         page: int = 1,
         industry: Optional[str] = None,
         exclude_industry: Optional[str] = None,
+        industries: Optional[list[str]] = None,
+        exclude_industries: Optional[list[str]] = None,
         include_suspended: bool = False,
         profit_only: bool = False,
         include_st: bool = True,
@@ -311,7 +313,7 @@ class FinancialService:
     ) -> dict[str, Any]:
         period = conditions[0].get("period", "annual") if conditions else "annual"
         years = conditions[0].get("years", 5) if conditions else 5
-        cache_key = f"screen:{hash(str(conditions))}:{sort_by}:{order}:{sort_by_2}:{order_2}:{limit}:{page}:{industry}:{exclude_industry}:{include_suspended}:{profit_only}:{include_st}:{require_complete_data}:{period}:{years}"
+        cache_key = f"screen:{hash(str(conditions))}:{sort_by}:{order}:{sort_by_2}:{order_2}:{limit}:{page}:{industry}:{exclude_industry}:{industries}:{exclude_industries}:{include_suspended}:{profit_only}:{include_st}:{require_complete_data}:{period}:{years}"
         cached = await redis_manager.get_json(cache_key)
         if cached:
             return cached
@@ -341,14 +343,15 @@ class FinancialService:
             ):
                 continue
 
-            if industry:
-                if company_industry is None or industry.lower() not in company_industry.lower():
+            if industries:
+                if company_industry is None or not any(
+                    ind.lower() in company_industry.lower() for ind in industries
+                ):
                     continue
 
-            if exclude_industry:
-                if (
-                    company_industry is not None
-                    and exclude_industry.lower() in company_industry.lower()
+            if exclude_industries:
+                if company_industry is not None and any(
+                    ex_ind.lower() in company_industry.lower() for ex_ind in exclude_industries
                 ):
                     continue
 
@@ -594,19 +597,40 @@ class FinancialService:
                     if metric == "roe":
                         key = "roe" if "roe" in indicator_data else None
                     elif metric == "roi":
-                        key = next((k for k in indicator_data.keys() if "roic" in k or "roi" in k), None)
+                        key = next(
+                            (k for k in indicator_data.keys() if "roic" in k or "roi" in k), None
+                        )
                     elif metric == "gross_margin":
-                        key = next((k for k in indicator_data.keys() if "gross_profit_margin" in k), None)
+                        key = next(
+                            (k for k in indicator_data.keys() if "gross_profit_margin" in k), None
+                        )
                     elif metric == "net_profit_growth":
-                        key = next((k for k in indicator_data.keys() if "net_profit" in k and "grow" in k.lower()), None)
+                        key = next(
+                            (
+                                k
+                                for k in indicator_data.keys()
+                                if "net_profit" in k and "grow" in k.lower()
+                            ),
+                            None,
+                        )
                     elif metric == "revenue_growth":
-                        key = next((k for k in indicator_data.keys() if "revenue" in k and "grow" in k.lower()), None)
+                        key = next(
+                            (
+                                k
+                                for k in indicator_data.keys()
+                                if "revenue" in k and "grow" in k.lower()
+                            ),
+                            None,
+                        )
                     else:
                         key = None
 
                     if key and key in indicator_data:
                         values = indicator_data[key]
-                        result[metric] = [(str(i), float(v) if v is not None and str(v) != "nan" else None) for i, v in enumerate(values)]
+                        result[metric] = [
+                            (str(i), float(v) if v is not None and str(v) != "nan" else None)
+                            for i, v in enumerate(values)
+                        ]
                     else:
                         result[metric] = []
                 else:

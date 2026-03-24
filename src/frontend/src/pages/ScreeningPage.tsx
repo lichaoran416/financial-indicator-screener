@@ -28,8 +28,8 @@ export default function ScreeningPage() {
   const [profitOnly, setProfitOnly] = createSignal(false);
   const [includeSt, setIncludeSt] = createSignal(true);
   const [requireCompleteData, setRequireCompleteData] = createSignal(false);
-  const [industry, setIndustry] = createSignal<string>('');
-  const [excludeIndustry, setExcludeIndustry] = createSignal<string>('');
+  const [industry, setIndustry] = createSignal<string[]>([]);
+  const [excludeIndustry, setExcludeIndustry] = createSignal<string[]>([]);
   const [industries, setIndustries] = createSignal<IndustryClassification[]>([]);
   const [industryType, setIndustryType] = createSignal<'csrc' | 'sw1' | 'sw3'>('csrc');
   const [viewMode, setViewMode] = createSignal<'treemap' | 'table'>('treemap');
@@ -96,8 +96,8 @@ export default function ScreeningPage() {
         order: sortOrder(),
         limit: limit(),
         page: page(),
-        industry: industry() || undefined,
-        exclude_industry: excludeIndustry() || undefined,
+        industries: industry().length > 0 ? industry() : undefined,
+        exclude_industries: excludeIndustry().length > 0 ? excludeIndustry() : undefined,
         include_suspended: includeSuspended(),
         profit_only: profitOnly(),
         include_st: includeSt(),
@@ -124,7 +124,7 @@ export default function ScreeningPage() {
     const conds = conditions();
     const ind = industry();
     const exclInd = excludeIndustry();
-    if (conds.length > 0 || ind || exclInd) {
+    if (conds.length > 0 || ind.length > 0 || exclInd.length > 0) {
       handleScreen();
     }
   });
@@ -266,11 +266,14 @@ export default function ScreeningPage() {
               <option value="sw3">申万三级</option>
             </select>
             <select
-              value={industry()}
-              onChange={(e) => setIndustry(e.currentTarget.value)}
-              style={{ padding: '0.25rem 0.5rem', 'border-radius': '4px', border: '1px solid #ccc', 'min-width': '150px' }}
+              multiple
+              size={4}
+              onChange={(e) => {
+                const selected = Array.from(e.currentTarget.selectedOptions).map(opt => opt.value);
+                setIndustry(selected);
+              }}
+              style={{ padding: '0.25rem 0.5rem', 'border-radius': '4px', border: '1px solid #ccc', 'min-width': '200px', 'max-height': '150px' }}
             >
-              <option value="">-- Include Industry --</option>
               <For each={industries()}>
                 {(ind) => <option value={ind.name}>{ind.name}</option>}
               </For>
@@ -280,23 +283,26 @@ export default function ScreeningPage() {
           <div style={{ display: 'flex', gap: '0.5rem', 'align-items': 'center' }}>
             <span style={{ 'font-size': '0.875rem' }}>Exclude:</span>
             <select
-              value={excludeIndustry()}
-              onChange={(e) => setExcludeIndustry(e.currentTarget.value)}
-              style={{ padding: '0.25rem 0.5rem', 'border-radius': '4px', border: '1px solid #ccc', 'min-width': '150px' }}
+              multiple
+              size={4}
+              onChange={(e) => {
+                const selected = Array.from(e.currentTarget.selectedOptions).map(opt => opt.value);
+                setExcludeIndustry(selected);
+              }}
+              style={{ padding: '0.25rem 0.5rem', 'border-radius': '4px', border: '1px solid #ccc', 'min-width': '200px', 'max-height': '150px' }}
             >
-              <option value="">-- Exclude Industry --</option>
               <For each={industries()}>
                 {(ind) => <option value={ind.name}>{ind.name}</option>}
               </For>
             </select>
           </div>
 
-          <Show when={industry() || excludeIndustry()}>
+          <Show when={industry().length > 0 || excludeIndustry().length > 0}>
             <button
               type="button"
               onClick={() => {
-                setIndustry('');
-                setExcludeIndustry('');
+                setIndustry([]);
+                setExcludeIndustry([]);
                 handleScreen();
               }}
               style={{

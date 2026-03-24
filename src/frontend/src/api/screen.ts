@@ -18,8 +18,8 @@ export interface ScreenRequest {
   order?: SortOrder;
   limit?: number;
   page?: number;
-  industry?: string;
-  exclude_industry?: string;
+  industries?: string[];
+  exclude_industries?: string[];
   include_suspended?: boolean;
   profit_only?: boolean;
   include_st?: boolean;

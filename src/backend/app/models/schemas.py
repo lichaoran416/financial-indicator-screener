@@ -51,6 +51,12 @@ class ScreenRequest(BaseModel):
     exclude_industry: Optional[str] = Field(
         default=None, description="Industry to exclude (partial match)"
     )
+    industries: Optional[list[str]] = Field(
+        default=None, description="Multiple industries to include (OR logic)"
+    )
+    exclude_industries: Optional[list[str]] = Field(
+        default=None, description="Multiple industries to exclude"
+    )
     include_suspended: bool = Field(
         default=False, description="Include suspended/delisted companies (JTB-007)"
     )
@@ -148,8 +154,15 @@ class PeerComparisonResponse(BaseModel):
 
 
 class TrendComparisonRequest(BaseModel):
-    codes: list[str] = Field(..., min_length=1, max_length=10, description="List of stock codes (1-10 companies)")
-    metrics: list[str] = Field(..., min_length=1, max_length=2, description="List of metrics to compare (1-2 metrics for dual Y-axis)")
+    codes: list[str] = Field(
+        ..., min_length=1, max_length=10, description="List of stock codes (1-10 companies)"
+    )
+    metrics: list[str] = Field(
+        ...,
+        min_length=1,
+        max_length=2,
+        description="List of metrics to compare (1-2 metrics for dual Y-axis)",
+    )
     period: Period = Field(default=Period.ANNUAL, description="Data period type")
     years: int = Field(default=5, ge=1, le=10, description="Number of years of history")
 
@@ -161,16 +174,22 @@ class MetricTrendPoint(BaseModel):
 
 class MetricTrendData(BaseModel):
     metric: str = Field(..., description="Metric identifier")
-    data: list[MetricTrendPoint] = Field(default_factory=list, description="Time series data points")
+    data: list[MetricTrendPoint] = Field(
+        default_factory=list, description="Time series data points"
+    )
 
 
 class CompanyTrendData(BaseModel):
     code: str = Field(..., description="Stock code")
     name: str = Field(..., description="Company name")
-    trends: list[MetricTrendData] = Field(default_factory=list, description="Trend data for each metric")
+    trends: list[MetricTrendData] = Field(
+        default_factory=list, description="Trend data for each metric"
+    )
 
 
 class TrendComparisonResponse(BaseModel):
-    companies: list[CompanyTrendData] = Field(default_factory=list, description="Trend data for each company")
+    companies: list[CompanyTrendData] = Field(
+        default_factory=list, description="Trend data for each company"
+    )
     period: str = Field(..., description="Period type used")
     years: int = Field(..., description="Number of years of data")

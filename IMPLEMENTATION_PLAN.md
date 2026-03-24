@@ -167,7 +167,7 @@
 | Industry Type Selector | ✅ Complete | CSRC/SW1/SW3 selector in PeerComparison UI |
 | Industry Filter in Frontend | ✅ Complete | Include industry dropdown with CSRC/SW1/SW3 selector |
 | Exclude Industry Option | ✅ Complete | Backend supports exclude_industry; UI dropdown added |
-| Multi-industry Selection UI | ❌ Missing | No multi-select for industry filter |
+| Multi-industry Selection UI | ✅ Complete | Backend: industries/exclude_industries params; Frontend: multi-select dropdowns |
 
 ### Phase 12: Visualization (JTB-014, JTB-015, JTB-016) ✅ MOSTLY COMPLETE
 | Component | Status | Notes |
@@ -228,7 +228,7 @@
 - [x] Create PeerComparison component with industry type selector
 - [x] Expose industry filter in frontend (include + exclude dropdowns)
 - [x] Add exclude industry option to screening UI
-- [ ] Add multi-industry selection to screening UI
+- [x] Add multi-industry selection to screening UI
 
 ### Phase 12: Visualization (JTB-014, JTB-015, JTB-016) - HIGH PRIORITY
 - [x] **Create TreeMap component** - SPEC SAYS DEFAULT VIEW, MUST IMPLEMENT
