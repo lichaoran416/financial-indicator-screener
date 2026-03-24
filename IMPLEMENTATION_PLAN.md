@@ -74,5 +74,20 @@ npm run lint
 
 ## Items Still Remaining
 
-- Integration tests (integration/ directory is empty) - Not critical
-- Minor: 6 eslint reactivity warnings in ValueSlider.tsx, TreeMap.tsx, ConditionRow.tsx, FormulaEditor.tsx, ScreeningPage.tsx (non-blocking)
+- Integration tests (integration/ directory is empty) - Not critical, marked as can-do-anytime
+- Minor: 6 eslint reactivity warnings in ValueSlider.tsx, TreeMap.tsx, ConditionRow.tsx, FormulaEditor.tsx, ScreeningPage.tsx - Non-blocking best-practice suggestions, not bugs
+
+## Release v0.2.19
+
+All specification items (JTB-001 through JTB-016 and edge cases) are implemented and verified:
+- Core filtering/sorting/detail/save (JTB-001 to JTB-004)
+- Custom formula engine (JTB-005, JTB-006)
+- Edge cases handling (JTB-007 to JTB-010)
+- Visualization (JTB-014 to JTB-016)
+- Industry comparison (specs/09_industry_comparison.md)
+
+Verification:
+- Backend tests: 124 passed
+- Backend mypy: no issues
+- Backend ruff: all checks passed
+- Frontend build: successful
