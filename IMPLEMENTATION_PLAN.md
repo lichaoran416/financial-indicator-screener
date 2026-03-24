@@ -1,6 +1,6 @@
 # Implementation Plan - A股财务指标分析应用
 
-## Status: PHASE 10-12 MOSTLY COMPLETE - PHASE 13-15 REMAIN - MYPY FIXES COMPLETE ✅
+## Status: PHASE 10-15 MOSTLY COMPLETE - CLEANUP/OPTIMIZATION REMAIN
 
 ## CRITICAL CONSTRAINT: 只使用akshare提供的数据api, 不要使用其他数据api
 
@@ -181,15 +181,15 @@
 | TreeMap Component | ✅ Complete | **SPEC REQUIRED AS DEFAULT VIEW** |
 | TrendComparisonChart | ✅ Complete | Backend: POST /company/trend; Frontend: TrendComparisonChart with dual Y-axis, company selection in ScreeningPage |
 | ValueSlider | ✅ Complete | Range slider with histogram - shows distribution and percentiles, integrated with ValueInput for "between" operator |
-| IndustryHeatmap | ❌ Missing | Industry distribution heatmap |
-| ConditionTree visualization | ❌ Missing | Graphical condition structure diagram |
+| IndustryHeatmap | ✅ Complete | Industry distribution heatmap |
+| ConditionTree visualization | ✅ Complete | Graphical condition structure diagram |
 | Time-Series Line Chart | ❌ Missing | Historical metric trends |
 | Multi-Company Comparison | ❌ Missing | Cannot compare >1 company trends |
 
 ### Phase 13: Multi-field Sorting
 | Component | Status | Notes |
 |-----------|--------|-------|
-| Secondary Sort Support | ⚠️ Partial | Backend has `sort_by_2` and `order_2` fields but frontend doesn't expose UI for secondary sort |
+| Secondary Sort Support | ✅ Complete | Backend has sort_by_2 and order_2 fields and frontend exposes UI via 'Advanced Sort' button |
 
 ### Phase 14: Edge Case Enhancements
 | Component | Status | Notes |
@@ -240,8 +240,8 @@
 - [x] **Create TreeMap component** - SPEC SAYS DEFAULT VIEW, MUST IMPLEMENT
 - [x] Create TrendComparisonChart (up to 10 companies, dual Y-axis) - Backend: `get_company_metrics_time_series` in financial.py, POST /company/trend; Frontend: TrendComparisonChart component
 - [x] Create ValueSlider with histogram - shows value distribution, percentiles (P25/P50/P75), quick range presets
-- [x] Create ConditionTree visualization - Shows tree structure of conditions with AND/OR logic, collapsible
 - [x] Create IndustryHeatmap - Shows industry distribution as color-coded heatmap
+- [x] Create ConditionTree visualization - Shows tree structure of conditions with AND/OR logic, collapsible
 - [ ] Create Time-Series Line Chart for historical metric trends
 - [ ] Create Multi-Company Comparison feature
 
@@ -343,9 +343,6 @@ npm run lint
 
 ## Items Still Remaining
 
-- Secondary sort UI (backend supports but frontend doesn't expose)
-- Risk warning text messages
 - Virtual scrolling for large result sets
-- Debounce (300ms) for condition inputs
 - Memoization (createMemo) for performance
-- Cache invalidation mechanism
+- Cache invalidation mechanism (manual via /api/v1/cache/refresh - automatic invalidation not implemented)
