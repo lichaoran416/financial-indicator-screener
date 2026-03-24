@@ -4,6 +4,7 @@ import logging
 import pandas as pd
 
 from app.core.redis import redis_manager
+from app.core.config import settings
 from app.models.schemas import (
     CompanyDetailResponse,
     CompanyStatus,
@@ -22,8 +23,6 @@ from app.utils.akshare_client import akshare_client
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
-CACHE_TTL = 24 * 60 * 60
 
 try:
     import akshare as ak
@@ -96,7 +95,7 @@ async def get_company(
         metrics=metrics,
     )
 
-    await redis_manager.set_json(cache_key, company_detail.model_dump(), CACHE_TTL)
+    await redis_manager.set_json(cache_key, company_detail.model_dump(), settings.CACHE_TTL)
 
     return company_detail
 
@@ -115,7 +114,7 @@ async def get_industry_csrc() -> list[IndustryClassification]:
         for item in csrc_data
     ]
 
-    await redis_manager.set_json(cache_key, [r.model_dump() for r in result], CACHE_TTL)
+    await redis_manager.set_json(cache_key, [r.model_dump() for r in result], settings.CACHE_TTL)
 
     return result
 
@@ -134,7 +133,7 @@ async def get_industry_sw_one() -> list[IndustryClassification]:
         for item in sw_data
     ]
 
-    await redis_manager.set_json(cache_key, [r.model_dump() for r in result], CACHE_TTL)
+    await redis_manager.set_json(cache_key, [r.model_dump() for r in result], settings.CACHE_TTL)
 
     return result
 
@@ -153,7 +152,7 @@ async def get_industry_sw_three() -> list[IndustryClassification]:
         for item in sw_data
     ]
 
-    await redis_manager.set_json(cache_key, [r.model_dump() for r in result], CACHE_TTL)
+    await redis_manager.set_json(cache_key, [r.model_dump() for r in result], settings.CACHE_TTL)
 
     return result
 
@@ -172,7 +171,7 @@ async def get_industry_ths() -> list[IndustryClassification]:
         for item in ths_data
     ]
 
-    await redis_manager.set_json(cache_key, [r.model_dump() for r in result], CACHE_TTL)
+    await redis_manager.set_json(cache_key, [r.model_dump() for r in result], settings.CACHE_TTL)
 
     return result
 
@@ -251,7 +250,7 @@ async def compare_with_peers(request: PeerComparisonRequest) -> PeerComparisonRe
         metrics=metrics_result,
     )
 
-    await redis_manager.set_json(cache_key, result.model_dump(), CACHE_TTL)
+    await redis_manager.set_json(cache_key, result.model_dump(), settings.CACHE_TTL)
 
     return result
 
@@ -302,6 +301,6 @@ async def get_trend_comparison(request: TrendComparisonRequest) -> TrendComparis
         years=request.years,
     )
 
-    await redis_manager.set_json(cache_key, result.model_dump(), CACHE_TTL)
+    await redis_manager.set_json(cache_key, result.model_dump(), settings.CACHE_TTL)
 
     return result

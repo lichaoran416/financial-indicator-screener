@@ -1,13 +1,11 @@
 from typing import Any, Optional, cast
 from app.utils.akshare_client import akshare_client
 from app.core.redis import redis_manager
+from app.core.config import settings
 from app.models.schemas import Period, CompanyStatus, RiskFlag
 from app.utils.formula_parser import parse, validate, FormulaParserError
 from app.utils.formula_lexer import FormulaLexerError
 from app.utils.formula_evaluator import evaluate, FormulaEvaluatorError
-
-
-CACHE_TTL = 86400
 
 
 class FinancialService:
@@ -100,7 +98,7 @@ class FinancialService:
                 }
             )
 
-        await redis_manager.set_json(cache_key, result, CACHE_TTL)
+        await redis_manager.set_json(cache_key, result, settings.CACHE_TTL)
         return result
 
     async def get_company_metrics(
@@ -430,7 +428,7 @@ class FinancialService:
             "companies": paginated,
             "total": total,
         }
-        await redis_manager.set_json(cache_key, result, CACHE_TTL)
+        await redis_manager.set_json(cache_key, result, settings.CACHE_TTL)
         return result
 
     def _has_complete_metrics(self, metrics: dict[str, Any], num_conditions: int) -> bool:

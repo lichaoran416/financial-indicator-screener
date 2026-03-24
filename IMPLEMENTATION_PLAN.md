@@ -1,6 +1,6 @@
 # Implementation Plan - A股财务指标分析应用
 
-## Status: v0.5.9 - BUG-H6 Fixed: Unified data sources in akshare_client.py
+## Status: v0.5.10 - BUG-H6 Fixed, NEW-4 Fixed: CACHE_TTL centralized
 
 ## CRITICAL CONSTRAINT: 只使用akshare提供的数据api, 不要使用其他数据api
 
@@ -57,7 +57,7 @@
 - [ ] **NEW-1** `log_data_acquisition()` defined in `logging.py:234-262` but NOT used anywhere in akshare_client.py
 - [ ] **NEW-2** `track_duration` decorator defined in `logging.py:265-290` but no functions use `@track_duration`
 - [ ] **NEW-3** `formula_service.py` has race condition potential - non-atomic read-modify-write pattern for save/update/delete
-- [ ] **NEW-4** CACHE_TTL duplicated in `company.py:24` and `financial.py:10` (both hardcode 86400 instead of using `settings.CACHE_TTL`)
+- [x] **NEW-4** CACHE_TTL duplicated in `company.py:24` and `financial.py:10` (both hardcode 86400 instead of using `settings.CACHE_TTL`) [FIXED: Replaced with settings.CACHE_TTL in both files]
 - [ ] **NEW-5** Export limited to current page only - cannot export all pages
 - [ ] **NEW-6** `TrendComparisonChart.tsx:73-78` - Financial report date annotations are hardcoded placeholders (Q1 on 04-30, Q2 on 08-31) not actual company-specific release dates
 - [ ] **NEW-7** THS industry classification implemented but not documented in specs/09_industry_comparison.md
@@ -370,7 +370,7 @@ npm run lint
 - [ ] Integrate log_data_acquisition() into akshare calls (NEW-1)
 - [ ] Apply track_duration decorator to slow functions (NEW-2)
 - [ ] Fix formula_service race condition (NEW-3)
-- [ ] Remove duplicate CACHE_TTL in company.py and financial.py (NEW-4)
+- [x] Remove duplicate CACHE_TTL in company.py and financial.py (NEW-4)
 
 ### v0.6.0 - Polish & Documentation
 - [ ] Update specs/03_technical_architecture.md with correct paths
