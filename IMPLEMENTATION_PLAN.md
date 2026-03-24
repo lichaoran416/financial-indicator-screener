@@ -1,6 +1,6 @@
 # Implementation Plan - A股财务指标分析应用
 
-## Status: IN PROGRESS - Multiple Critical Gaps Found
+## Status: IN PROGRESS - v0.3.0 Bug Fix Release Complete, v0.4.0 Feature Completion in Progress
 
 ## CRITICAL CONSTRAINT: 只使用akshare提供的数据api, 不要使用其他数据api
 
@@ -20,15 +20,6 @@
 
 ### High Priority Gaps (Verified)
 
-- [ ] **JTB-101 through JTB-108** Logging infrastructure entirely missing - No logging module exists in backend. Required per spec 12_logging.md:
-  - Structured JSON logs
-  - Log levels (DEBUG/INFO/WARNING/ERROR/CRITICAL)
-  - Log output to stdout and `logs/` directory
-  - Log rotation (7-day retention)
-  - Request ID tracking (UUIDv4)
-  - Performance metrics logging
-  - Slow request alerts (threshold not defined)
-  - Sensitive data filtering
 - [ ] **JTB-011** THS industry classification missing - No `get_industry_ths()` method in akshare_client.py
 - [ ] **JTB-011** CSRC industry not 3-level hierarchy - `get_industry_csrc()` returns flat list, not 门类/大类/中类 structure
 
@@ -88,6 +79,16 @@
 - [x] Evaluator implementation
 - [x] Formula validation service
 
+### Logging Infrastructure (JTB-101 through JTB-108)
+- [x] JTB-101 API request logging - with method, path, params, duration
+- [x] JTB-102 Error logging - with error type, stack trace, request context
+- [x] JTB-103 Data acquisition logging - akshare requests/responses
+- [x] JTB-104 Log levels - DEBUG/INFO/WARNING/ERROR/CRITICAL
+- [x] JTB-105 Structured JSON log output
+- [x] JTB-106 Request ID tracking - UUIDv4贯穿请求生命周期
+- [x] JTB-107 Sensitive data filtering - masks password/token/secret/etc.
+- [x] JTB-108 Slow request alerts - threshold 1000ms
+
 ### API Endpoints (Backend has but not all documented in specs)
 - [x] GET /api/v1/industry/csrc - Industry classification
 - [x] GET /api/v1/industry/sw-one - Shenwan L1
@@ -146,25 +147,13 @@ def parse_time_series(self, metric_name: str) -> ASTNode:
 
 ## Missing Features Detail
 
-### Logging Infrastructure (JTB-101 through JTB-108) - ENTIRELY MISSING
-
-No logging infrastructure exists. Required per spec 12_logging.md:
-- **JTB-101**: API request logging (method, path, params, duration)
-- **JTB-102**: Error logging (error type, stack trace, request context)
-- **JTB-103**: Data acquisition logging (akshare requests/responses)
-- **JTB-104**: Log levels (DEBUG/INFO/WARNING/ERROR/CRITICAL)
-- **JTB-105**: Structured JSON log output
-- **JTB-106**: Request ID tracking (UUIDv4贯穿请求生命周期)
-- **JTB-107**: Sensitive data filtering
-- **JTB-108**: Slow request alerts (>threshold)
-
 ### THS Industry Classification (JTB-011)
 **Location**: `src/backend/app/utils/akshare_client.py`
 **Issue**: No `get_industry_ths()` method exists. Only CSRC and SW (申万) industry classifications available.
 
 ### CSRC 3-Level Hierarchy (JTB-011)
 **Location**: `src/backend/app/utils/akshare_client.py:208-226`
-**Issue**: `get_industry_csrc()` returns flat list, not proper 门类/大类/中类 hierarchy.
+**Issue**: `get_industry_csrc()` returns flat list, not proper 门类/大类/中类 structure.
 
 ---
 
@@ -231,15 +220,15 @@ npm run lint
 
 ## Release Planning
 
-### v0.3.0 - Bug Fix Release
-- [ ] Fix profit_only filter (use correct metric key)
-- [ ] Fix AND/OR logic (add to request and backend)
-- [ ] Add Years selector UI
-- [ ] Add Save button to ScreeningPage
-- [ ] Fix time series syntax (COLON token in lexer, advance-after-check in parser)
+### v0.3.0 - Bug Fix Release (COMPLETED)
+- [x] Fix profit_only filter (use correct metric key)
+- [x] Fix AND/OR logic (add to request and backend)
+- [x] Add Years selector UI
+- [x] Add Save button to ScreeningPage
+- [x] Fix time series syntax (COLON token in lexer, advance-after-check in parser)
+- [x] Implement logging infrastructure (JTB-101 through JTB-108)
 
 ### v0.4.0 - Feature Completion
-- [ ] Implement logging infrastructure (JTB-101 through JTB-108)
 - [ ] Add THS industry classification
 - [ ] Implement CSRC 3-level hierarchy
 - [ ] Display N/A for missing data
