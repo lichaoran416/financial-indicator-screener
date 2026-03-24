@@ -29,7 +29,7 @@ export default function ScreeningPage() {
   const [loading, setLoading] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
   const [page, setPage] = createSignal(1);
-  const [limit] = createSignal(50);
+  const [limit] = createSignal(100);
   const [sortColumn, setSortColumn] = createSignal<string | null>(null);
   const [sortOrder, setSortOrder] = createSignal<SortOrder>('desc');
   const [sortColumn2, setSortColumn2] = createSignal<string | null>(null);

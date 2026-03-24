@@ -136,9 +136,9 @@
   - Toggle between TreeMap and Table view
 
 ### Issue 6: Screen limit default mismatch ✅ FIXED
-- **Location**: `src/backend/app/models/schemas.py`
+- **Location**: `src/backend/app/models/schemas.py`, `src/frontend/src/pages/ScreeningPage.tsx`
 - **Spec says**: Default limit should be 100
-- **Fix**: Changed default limit from 50 to 100
+- **Fix**: Changed default limit from 50 to 100 in both backend schema and frontend signal
 
 ---
 
