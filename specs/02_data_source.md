@@ -21,6 +21,7 @@ akshare.sw_index_three()                       # 申万三级行业
 - `get_financial_indicators()` - 获取财务指标（调用 `stock_financial_analysis_indicator`）
 - `get_financial_statements()` - 获取财务报表（调用 `stock_financial_report_sina`）
 - `get_financial_data()` - 获取财务数据（调用 `stock_profit_sheet_by_report_em` 和 `stock_balance_sheet_by_report_em`）
+- `get_financial_indicator()` - 获取财务指标数据（调用 `stock_financial_analysis_indicator`，支持单季度指标）
 - `get_company_info()` - 获取公司信息（调用 `stock_individual_info_em`）
 - `get_stock_list()` - 获取股票列表（调用 `stock_zh_a_spot_em`）
 - `get_industry_csrc()` - 获取证监会行业分类
@@ -28,6 +29,8 @@ akshare.sw_index_three()                       # 申万三级行业
 - `get_industry_sw_one()` - 获取申万一级行业
 - `get_industry_sw_three()` - 获取申万三级行业
 - `get_industry_peers()` - 获取同行业公司列表
+- `get_disclosure_date()` - 获取财报披露日期
+- `get_market_capital()` - 获取市值（用于PE/PB计算）
 
 ### 数据更新策略
 - **缓存策略**: Redis缓存，TTL 24小时

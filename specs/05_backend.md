@@ -15,6 +15,7 @@ Request: {
       "years": 5
     }
   ],
+  "logic": "and",
   "sort_by": "roi",
   "order": "desc",
   "sort_by_2": "roe",
@@ -56,6 +57,32 @@ Response: {
   "status": "ACTIVE",
   "risk_flag": "NORMAL",
   "metrics": {...}
+}
+```
+
+#### 获取财报披露日期
+```
+POST /api/v1/company/disclosure-dates
+Request: {
+  "codes": ["000001", "600000"],
+  "period": "annual"
+}
+Response: {
+  "companies": [
+    {
+      "code": "000001",
+      "name": "平安银行",
+      "disclosure_dates": {
+        "annual": {
+          "2024": {"report_date": "2025-04-30", "disclosure_date": "2025-04-30"},
+          "2023": {"report_date": "2024-04-30", "disclosure_date": "2024-04-30"}
+        },
+        "quarterly": {
+          "2024Q1": {"report_date": "2025-04-30", "disclosure_date": "2025-04-30"}
+        }
+      }
+    }
+  ]
 }
 ```
 
