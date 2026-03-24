@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Path
 from typing import Any
+import logging
 import pandas as pd
 
 from app.core.redis import redis_manager
@@ -20,6 +21,7 @@ from app.models.schemas import (
 from app.utils.akshare_client import akshare_client
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 CACHE_TTL = 24 * 60 * 60
 
@@ -156,6 +158,25 @@ async def get_industry_sw_three() -> list[IndustryClassification]:
     return result
 
 
+@router.get("/industry/ths", response_model=list[IndustryClassification])
+async def get_industry_ths() -> list[IndustryClassification]:
+    cache_key = "industry:ths"
+
+    cached_data = await redis_manager.get_json(cache_key)
+    if cached_data:
+        return [IndustryClassification(**item) for item in cached_data]
+
+    ths_data = await akshare_client.get_industry_ths()
+    result = [
+        IndustryClassification(code=item.get("code", ""), name=item.get("name", ""), level="ths")
+        for item in ths_data
+    ]
+
+    await redis_manager.set_json(cache_key, [r.model_dump() for r in result], CACHE_TTL)
+
+    return result
+
+
 @router.post("/company/compare", response_model=PeerComparisonResponse)
 async def compare_with_peers(request: PeerComparisonRequest) -> PeerComparisonResponse:
     cache_key = f"compare:{request.code}:{request.industry_type}:{hash(str(request.metrics))}"
@@ -182,7 +203,8 @@ async def compare_with_peers(request: PeerComparisonRequest) -> PeerComparisonRe
                 peer_code, period="annual", years=5
             )
             peer_metrics_list.append(peer_metric)
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Failed to get peer metric for {peer_code}: {e}")
             continue
 
     metrics_result = []
@@ -270,7 +292,8 @@ async def get_trend_comparison(request: TrendComparisonRequest) -> TrendComparis
                 trends.append(trend_data)
 
             companies_data.append(CompanyTrendData(code=code, name=name, trends=trends))
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Failed to get trend data for {code}: {e}")
             continue
 
     result = TrendComparisonResponse(

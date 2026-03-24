@@ -207,16 +207,42 @@ class AkshareClient:
 
     async def get_industry_csrc(self) -> list[dict[str, Any]]:
         try:
-            df = await self._retry_async(ak.stock_info_csrc_main)
+            df = await self._retry_async(ak.stock_industry_category_cninfo, "证监会行业分类标准")
+            if df is None or df.empty:
+                return []
+            result = []
+            for _, row in df.iterrows():
+                level = str(row.get("分级", ""))
+                if level == "0":
+                    level = "1"
+                result.append(
+                    {
+                        "code": str(row.get("类目编码", "")),
+                        "name": str(row.get("类目名称", "")),
+                        "level": level,
+                        "parent_code": str(row.get("父类编码", ""))
+                        if row.get("父类编码")
+                        else None,
+                    }
+                )
+            return result
+        except AkshareAPIError:
+            return []
+        except Exception:
+            return []
+
+    async def get_industry_ths(self) -> list[dict[str, Any]]:
+        try:
+            df = await self._retry_async(ak.stock_board_industry_name_ths)
             if df is None or df.empty:
                 return []
             result = []
             for _, row in df.iterrows():
                 result.append(
                     {
-                        "code": str(row.get("股票代码", "")),
-                        "name": str(row.get("股票简称", "")),
-                        "industry_csrc": str(row.get("行业分类", "")),
+                        "code": str(row.get("code", "")),
+                        "name": str(row.get("name", "")),
+                        "level": "ths",
                     }
                 )
             return result
@@ -268,31 +294,36 @@ class AkshareClient:
     async def get_industry_peers(self, symbol: str, industry_type: str = "csrc") -> list[str]:
         try:
             normalized_symbol = self._normalize_symbol(symbol)
-            if industry_type == "csrc":
-                df = await self._retry_async(ak.stock_info_csrc_main)
-                if df is None or df.empty:
-                    return []
-                company_industry = None
-                for _, row in df.iterrows():
-                    if str(row.get("股票代码", "")) == normalized_symbol.replace("SH", "").replace(
+            company_info_df = await self._retry_async(
+                ak.stock_individual_info_em, normalized_symbol
+            )
+            if company_info_df is None or company_info_df.empty:
+                return []
+            company_industry = None
+            for _, row in company_info_df.iterrows():
+                if row.get("item") == "行业":
+                    company_industry = str(row.get("value", ""))
+                    break
+            if not company_industry:
+                return []
+            stock_list_df = await self._retry_async(ak.stock_zh_a_spot_em)
+            if stock_list_df is None or stock_list_df.empty:
+                return []
+            peers = []
+            for _, row in stock_list_df.iterrows():
+                stock_industry = str(row.get("行业", "")) if pd.notna(row.get("行业")) else ""
+                if stock_industry == company_industry:
+                    peer_code = str(row.get("代码", ""))
+                    if peer_code and peer_code != normalized_symbol.replace("SH", "").replace(
                         "SZ", ""
                     ).replace("BJ", ""):
-                        company_industry = str(row.get("行业分类", ""))
-                        break
-                if not company_industry:
-                    return []
-                peers = []
-                for _, row in df.iterrows():
-                    if str(row.get("行业分类", "")) == company_industry:
-                        peer_code = str(row.get("股票代码", ""))
                         if not peer_code.startswith(("SH", "SZ", "BJ")):
                             if peer_code.startswith(("6", "5", "9")):
                                 peer_code = f"SH{peer_code}"
                             elif peer_code.startswith(("0", "1", "2", "3", "4")):
                                 peer_code = f"SZ{peer_code}"
                         peers.append(peer_code)
-                return peers
-            return []
+            return peers[:50]
         except AkshareAPIError:
             return []
         except Exception:

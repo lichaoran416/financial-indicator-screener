@@ -4,6 +4,7 @@ from typing import List
 
 from fastapi import APIRouter, HTTPException
 
+from app.core.config import settings
 from app.core.redis import redis_manager
 from app.models.schemas import (
     Condition,
@@ -16,7 +17,8 @@ from app.models.schemas import (
 
 router = APIRouter(prefix="/screen", tags=["screen"])
 
-SAVED_SCREENS_KEY = "saved_screens"
+SAVED_SCREENS_INDEX_KEY = "saved_screens:index"
+SCREEN_KEY_PREFIX = "saved_screen:"
 
 
 async def get_companies_from_financial_service(
@@ -78,6 +80,8 @@ async def screen_companies_endpoint(request: ScreenRequest) -> ScreenResponse:
             exclude_industries=request.exclude_industries,
             sort_by=request.sort_by,
             order=request.order.value,
+            sort_by_2=request.sort_by_2,
+            order_2=request.order_2.value,
             limit=request.limit,
             page=request.page,
             include_suspended=request.include_suspended,
@@ -93,18 +97,24 @@ async def screen_companies_endpoint(request: ScreenRequest) -> ScreenResponse:
 @router.post("/save", response_model=SavedScreen)
 async def save_screen(request: SaveScreenRequest) -> SavedScreen:
     """
-    Save screening conditions to Redis with permanent TTL.
+    Save screening conditions to Redis with 24-hour TTL.
     """
+    screen_id = str(uuid.uuid4())
     saved_screen = SavedScreen(
-        id=str(uuid.uuid4()),
+        id=screen_id,
         name=request.name,
         conditions=request.conditions,
         created_at=datetime.utcnow(),
     )
 
-    existing = await redis_manager.get_json(SAVED_SCREENS_KEY) or []
-    existing.append(saved_screen.model_dump(mode="json"))
-    await redis_manager.set_json(SAVED_SCREENS_KEY, existing)
+    index = await redis_manager.get_json(SAVED_SCREENS_INDEX_KEY) or []
+    index.append({"id": screen_id, "name": request.name})
+    await redis_manager.set_json(SAVED_SCREENS_INDEX_KEY, index, ttl=settings.CACHE_TTL)
+
+    screen_key = f"{SCREEN_KEY_PREFIX}{screen_id}"
+    await redis_manager.set_json(
+        screen_key, saved_screen.model_dump(mode="json"), ttl=settings.CACHE_TTL
+    )
 
     return saved_screen
 
@@ -114,8 +124,15 @@ async def get_saved_screens() -> List[SavedScreen]:
     """
     Get all saved screening conditions from Redis.
     """
-    saved_screens = await redis_manager.get_json(SAVED_SCREENS_KEY) or []
-    return [SavedScreen(**screen) for screen in saved_screens]
+    index = await redis_manager.get_json(SAVED_SCREENS_INDEX_KEY) or []
+    screens = []
+    for item in index:
+        screen_key = f"{SCREEN_KEY_PREFIX}{item['id']}"
+        screen_data = await redis_manager.get_json(screen_key)
+        if screen_data:
+            await redis_manager.set_json(screen_key, screen_data, ttl=settings.CACHE_TTL)
+            screens.append(SavedScreen(**screen_data))
+    return screens
 
 
 @router.delete("/saved/{screen_id}")
@@ -123,7 +140,15 @@ async def delete_saved_screen(screen_id: str) -> dict[str, bool]:
     """
     Delete a saved screening condition by ID.
     """
-    existing = await redis_manager.get_json(SAVED_SCREENS_KEY) or []
-    updated = [s for s in existing if s.get("id") != screen_id]
-    await redis_manager.set_json(SAVED_SCREENS_KEY, updated)
-    return {"deleted": len(existing) > len(updated)}
+    index = await redis_manager.get_json(SAVED_SCREENS_INDEX_KEY) or []
+    updated_index = [item for item in index if item.get("id") != screen_id]
+
+    if len(updated_index) == len(index):
+        return {"deleted": False}
+
+    screen_key = f"{SCREEN_KEY_PREFIX}{screen_id}"
+    await redis_manager.delete(screen_key)
+
+    await redis_manager.set_json(SAVED_SCREENS_INDEX_KEY, updated_index, ttl=settings.CACHE_TTL)
+
+    return {"deleted": True}

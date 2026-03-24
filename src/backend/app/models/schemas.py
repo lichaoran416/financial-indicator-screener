@@ -141,7 +141,7 @@ class IndustryClassification(BaseModel):
 class PeerComparisonRequest(BaseModel):
     code: str = Field(..., description="Stock code")
     industry_type: str = Field(
-        default="csrc", description="Industry classification type: csrc, sw1, sw3"
+        default="csrc", description="Industry classification type: csrc, sw1, sw3, ths"
     )
     metrics: list[str] = Field(default_factory=list, description="Metrics to compare")
 

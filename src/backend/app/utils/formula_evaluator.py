@@ -120,6 +120,18 @@ class FormulaEvaluator:
                 raise FormulaEvaluatorError(f"Empty list for metric: {metric_name}")
             if isinstance(year, tuple):
                 start_year, end_year = year
+                if start_year < 0 or start_year >= len(value):
+                    raise FormulaEvaluatorError(
+                        f"Start year {start_year} is out of bounds for metric {metric_name} "
+                        f"which has {len(value)} data points"
+                    )
+                if end_year < 0 or end_year >= len(value):
+                    raise FormulaEvaluatorError(
+                        f"End year {end_year} is out of bounds for metric {metric_name} "
+                        f"which has {len(value)} data points"
+                    )
+                if start_year > end_year:
+                    raise FormulaEvaluatorError(f"Invalid year range: {start_year}:{end_year}")
                 return value[start_year : end_year + 1]
             return float(value[-1])
 
@@ -237,9 +249,10 @@ class FormulaEvaluator:
                         results.append(left_val * right_val)
                     elif node.operator == "/":
                         if right_val == 0:
-                            results.append(0.0)
-                        else:
-                            results.append(left_val / right_val)
+                            raise FormulaEvaluatorError(
+                                f"Division by zero in list evaluation: {left_val} / {right_val}"
+                            )
+                        results.append(left_val / right_val)
                 elif node.node_type == ASTNodeType.UNARY_OP:
                     if node.operator == "-":
                         results.append(-right_val)

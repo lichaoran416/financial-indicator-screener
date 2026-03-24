@@ -24,6 +24,12 @@ class FormulaSaveRequest(BaseModel):
     description: Optional[str] = Field(None, description="Formula description")
 
 
+class UpdateFormulaRequest(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=100, description="Formula name")
+    formula: Optional[str] = Field(None, description="Formula string")
+    description: Optional[str] = Field(None, description="Formula description")
+
+
 class FormulaResponse(BaseModel):
     id: str
     name: str
@@ -94,6 +100,34 @@ async def save_formula(request: FormulaSaveRequest) -> FormulaResponse:
         formula=saved_formula.formula,
         description=saved_formula.description,
         created_at=saved_formula.created_at.isoformat() if saved_formula.created_at else None,
+    )
+
+
+@router.put("/{formula_id}", response_model=FormulaResponse)
+async def update_formula_endpoint(
+    formula_id: str,
+    request: UpdateFormulaRequest,
+) -> FormulaResponse:
+    """
+    Update a saved formula by ID.
+    """
+    success, error, formula = await formula_service.update_formula(
+        formula_id=formula_id,
+        name=request.name,
+        formula=request.formula,
+        description=request.description,
+    )
+
+    if not success:
+        raise HTTPException(status_code=400, detail=error or "Failed to update formula")
+
+    updated_formula = cast(Formula, formula)
+    return FormulaResponse(
+        id=updated_formula.id,
+        name=updated_formula.name,
+        formula=updated_formula.formula,
+        description=updated_formula.description,
+        created_at=updated_formula.created_at.isoformat() if updated_formula.created_at else None,
     )
 
 

@@ -387,7 +387,7 @@ class FinancialService:
             company["available_years"] = metrics.get("_available_years", 0)
 
             if profit_only:
-                net_profit = metrics.get("net_profit") or metrics.get("roe", 0)
+                net_profit = metrics.get("net_profit")
                 if net_profit is None or net_profit <= 0:
                     continue
 
@@ -398,20 +398,28 @@ class FinancialService:
             if self._evaluate_conditions(company, conditions, logic):
                 screened.append(company)
 
-        if sort_by:
-            if sort_by_2:
-                reverse_2 = order_2.lower() == "desc"
+            if sort_by:
+                if sort_by_2:
+                    reverse_2 = order_2.lower() == "desc"
+                    screened = sorted(
+                        screened,
+                        key=lambda x: (
+                            (0, -x.get("metrics", {}).get(sort_by_2))
+                            if x.get("metrics", {}).get(sort_by_2) is not None
+                            else (1, 0)
+                        ),
+                        reverse=reverse_2,
+                    )
+                reverse = order.lower() == "desc"
                 screened = sorted(
                     screened,
-                    key=lambda x: x.get("metrics", {}).get(sort_by_2) or 0,
-                    reverse=reverse_2,
+                    key=lambda x: (
+                        (0, -x.get("metrics", {}).get(sort_by))
+                        if x.get("metrics", {}).get(sort_by) is not None
+                        else (1, 0)
+                    ),
+                    reverse=reverse,
                 )
-            reverse = order.lower() == "desc"
-            screened = sorted(
-                screened,
-                key=lambda x: x.get("metrics", {}).get(sort_by) or 0,
-                reverse=reverse,
-            )
 
         total = len(screened)
         start = (page - 1) * limit
@@ -430,7 +438,7 @@ class FinancialService:
             return False
         required_metrics = ["roe", "roi", "gross_margin", "net_profit_growth", "revenue_growth"]
         present_count = sum(1 for m in required_metrics if metrics.get(m) is not None)
-        return present_count >= min(num_conditions, 3)
+        return present_count >= len(required_metrics)
 
     def _evaluate_conditions(
         self, company: dict[str, Any], conditions: list[dict[str, Any]], logic: str = "and"

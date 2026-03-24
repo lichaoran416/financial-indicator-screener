@@ -159,11 +159,7 @@ class FormulaParser:
             year_val = int(self.current_token.value)
             self.advance()
 
-            if (
-                self.current_token is not None
-                and self.current_token.type == TokenType.IDENTIFIER
-                and self.current_token.value == ":"
-            ):
+            if self.current_token is not None and self.current_token.type == TokenType.COLON:
                 self.advance()
                 if self.current_token is None or self.current_token.type != TokenType.NUMBER:
                     raise FormulaParserError("Expected end year after ':' in time range", self.pos)
