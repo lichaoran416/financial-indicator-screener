@@ -39,7 +39,7 @@
 - [ ] **GAP-F6** `TrendComparisonChart.tsx:155-161` - Time range selector is cosmetic only; always fetches 5 years regardless of selection
 - [ ] **GAP-F7** `FormulaEditor.tsx:204-212` - Shows raw formula preview, not actual calculated result. `evaluateFormula` API exists but is never called
 - [ ] **GAP-F8** `Pagination.tsx` - No direct page number input (only Previous/Next/ellipsis buttons)
-- [ ] **GAP-F9** `metrics.py:7-17` - Hardcoded English metric names instead of Chinese names from `FinancialService.METRIC_DEFINITIONS`
+- [x] **GAP-F9** `metrics.py:7-17` - Hardcoded English metric names instead of Chinese names from `FinancialService.METRIC_DEFINITIONS` (FIXED: Now uses Chinese names from METRIC_DEFINITIONS)
 
 ### Documentation Gaps
 
@@ -362,7 +362,7 @@ npm run lint
 - [ ] Make time range selector functional (GAP-F6)
 - [ ] Show formula calculation result in FormulaEditor (GAP-F7)
 - [ ] Add direct page number input to pagination (GAP-F8)
-- [ ] Use Chinese metric names from METRIC_DEFINITIONS (GAP-F9)
+- [x] Use Chinese metric names from METRIC_DEFINITIONS (GAP-F9)
 - [ ] Add missing test coverage
 - [ ] Document undocumented API endpoints
 - [ ] Integrate log_data_acquisition() into akshare calls (NEW-1)
