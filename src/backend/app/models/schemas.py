@@ -29,7 +29,8 @@ class RiskFlag(str, Enum):
 
 
 class Condition(BaseModel):
-    metric: str = Field(..., description="Metric identifier")
+    metric: Optional[str] = Field(default=None, description="Metric identifier (use metric OR formula, not both)")
+    formula: Optional[str] = Field(default=None, description="Custom formula expression (e.g., 'roe / roi')")
     operator: str = Field(..., description="Comparison operator (>, <, >=, <=, ==, !=, between)")
     value: float = Field(..., description="Value to compare against")
     value2: Optional[float] = Field(default=None, description="Second value for between operator")

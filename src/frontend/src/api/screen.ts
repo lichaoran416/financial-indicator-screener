@@ -4,7 +4,8 @@ export type Period = "annual" | "quarterly" | "ttm";
 export type SortOrder = "asc" | "desc";
 
 export interface Condition {
-  metric: string;
+  metric?: string;
+  formula?: string;
   operator: string;
   value: number;
   value2?: number;

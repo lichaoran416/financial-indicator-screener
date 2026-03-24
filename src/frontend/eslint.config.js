@@ -22,6 +22,8 @@ export default [
         HTMLInputElement: 'readonly',
         KeyboardEvent: 'readonly',
         InputEvent: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
       },
     },
     plugins: {

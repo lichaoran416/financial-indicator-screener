@@ -2,6 +2,9 @@ from typing import Any, Optional, cast
 from app.utils.akshare_client import akshare_client
 from app.core.redis import redis_manager
 from app.models.schemas import Period, CompanyStatus, RiskFlag
+from app.utils.formula_parser import parse, validate, FormulaParserError
+from app.utils.formula_lexer import FormulaLexerError
+from app.utils.formula_evaluator import evaluate, FormulaEvaluatorError
 
 
 CACHE_TTL = 86400
@@ -432,19 +435,37 @@ class FinancialService:
 
         for condition in conditions:
             metric = condition.get("metric")
+            formula = condition.get("formula")
             operator = condition.get("operator")
             value = condition.get("value")
             value2 = condition.get("value2")
 
-            if not metric or metric not in metrics:
+            metric_value: Optional[float] = None
+
+            if formula:
+                try:
+                    valid, error = validate(formula)
+                    if not valid:
+                        return False
+                    ast = parse(formula)
+                    metric_value = evaluate(ast, metrics)
+                except (FormulaLexerError, FormulaParserError, FormulaEvaluatorError):
+                    return False
+            elif metric:
+                if metric not in metrics:
+                    return False
+                metric_value = metrics.get(metric)
+                if metric_value is None:
+                    return False
+                metric_value = float(metric_value)
+            else:
                 return False
 
-            metric_value = metrics.get(metric)
             if metric_value is None:
                 return False
 
             if not self._compare(
-                float(metric_value),
+                metric_value,
                 str(operator) if operator else "",
                 float(value) if value else 0.0,
                 float(value2) if value2 else None,
