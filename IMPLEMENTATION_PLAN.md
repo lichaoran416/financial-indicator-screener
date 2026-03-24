@@ -1,6 +1,6 @@
 # Implementation Plan - A股财务指标分析应用
 
-## Status: v0.7.3 - VERIFIED: All tests pass (147 backend, 53 frontend), typecheck passes, lint warnings only, frontend builds successfully
+## Status: v0.7.4 - VERIFIED: All tests pass (147 backend, 53 frontend), typecheck passes, lint warnings only, frontend builds successfully. Fixed undocumented API endpoints and akshare functions in specs.
 
 ## CRITICAL CONSTRAINT: 只使用akshare提供的数据api, 不要使用其他数据api
 
@@ -48,6 +48,8 @@
 - [x] specs/03_technical_architecture.md - Missing formula engine section [FIXED: Added formula engine architecture]
 - [x] specs/09_industry_comparison.md - THS industry classification is implemented but not documented [FIXED: Documented THS classification]
 - [x] Data source spec says `stock_financial_report_sina` but code uses `stock_profit_sheet_by_report_em` for income data [FIXED: Updated specs/02_data_source.md to reflect actual implementation]
+- [x] specs/05_backend.md - Missing POST /company/disclosure-dates endpoint and logic parameter for screen [FIXED: Documented disclosure-dates endpoint and logic parameter]
+- [x] specs/02_data_source.md - Missing get_disclosure_date(), get_market_capital(), get_financial_indicator() [FIXED: Added these functions to data source spec]
 
 ### New Issues Found (Requiring Investigation)
 
