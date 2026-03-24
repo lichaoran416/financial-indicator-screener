@@ -1,6 +1,6 @@
 # Implementation Plan - A股财务指标分析应用
 
-## Status: v0.5.12 - NEW-5 FIXED: Export button now fetches all pages (up to 100) before exporting CSV
+## Status: v0.6.0 - FIXED: NEW-1, NEW-2, NEW-3 (race condition, logging integration, track_duration), added test coverage for time series, multiple args, and division by zero in evaluate_list
 
 ## CRITICAL CONSTRAINT: 只使用akshare提供的数据api, 不要使用其他数据api
 
@@ -51,9 +51,9 @@
 
 ### New Issues Found (Requiring Investigation)
 
-- [ ] **NEW-1** `log_data_acquisition()` defined in `logging.py:234-262` but NOT used anywhere in akshare_client.py
-- [ ] **NEW-2** `track_duration` decorator defined in `logging.py:265-290` but no functions use `@track_duration`
-- [ ] **NEW-3** `formula_service.py` has race condition potential - non-atomic read-modify-write pattern for save/update/delete
+- [x] **NEW-1** `log_data_acquisition()` defined in `logging.py:234-262` but NOT used anywhere in akshare_client.py [FIXED: Integrated into all akshare_client data acquisition methods]
+- [x] **NEW-2** `track_duration` decorator defined in `logging.py:265-290` but no functions use `@track_duration` [FIXED: Applied to slow functions in akshare_client.py]
+- [x] **NEW-3** `formula_service.py` has race condition potential - non-atomic read-modify-write pattern for save/update/delete [FIXED: Implemented atomic_update_json using WATCH/MULTI/EXEC pattern]
 - [x] **NEW-4** CACHE_TTL duplicated in `company.py:24` and `financial.py:10` (both hardcode 86400 instead of using `settings.CACHE_TTL`) [FIXED: Replaced with settings.CACHE_TTL in both files]
 - [x] **NEW-5** Export limited to current page only - cannot export all pages [FIXED: ExportButton now fetches all pages (up to 100 pages) before exporting]
 - [ ] **NEW-6** `TrendComparisonChart.tsx:73-78` - Financial report date annotations are hardcoded placeholders (Q1 on 04-30, Q2 on 08-31) not actual company-specific release dates
@@ -113,7 +113,7 @@
 ### Logging Infrastructure (JTB-101 through JTB-108)
 - [x] JTB-101 API request logging - with method, path, params, duration
 - [x] JTB-102 Error logging - with error type, stack trace, request context
-- [x] JTB-103 Data acquisition logging - function defined (but NOT actively used - NEW-1)
+- [x] JTB-103 Data acquisition logging - now integrated into akshare_client (NEW-1 FIXED)
 - [x] JTB-104 Log levels - DEBUG/INFO/WARNING/ERROR/CRITICAL
 - [x] JTB-105 Structured JSON log output
 - [x] JTB-106 Request ID tracking - UUIDv4贯穿请求生命周期
@@ -298,10 +298,10 @@ const response = await apiClient.post('/company/trend', {
 
 | Gap Item | Status | Notes |
 |----------|--------|-------|
-| Time series parsing (`ROE[2023]`, `ROE[2020:2024]`) | NOT TESTED | No tests for `parse_time_series()` |
-| Time series evaluation | NOT TESTED | `test_get_time_series_value_with_list` only tests year parameter |
-| Multiple function arguments (`AVG(roe, roi)`) | NOT TESTED | Tests only `AVG(roe + roi)`, not comma-separated args |
-| Division by zero in `evaluate_list()` | NOT TESTED | Only tests `evaluate()`, not `evaluate_list()` |
+| Time series parsing (`ROE[2023]`, `ROE[2020:2024]`) | TESTED | Added `TestTimeSeriesParsing` class with 3 tests |
+| Time series evaluation | TESTED | Added `TestTimeSeriesEvaluation` class with 2 tests |
+| Multiple function arguments (`AVG(roe, roi)`) | TESTED | Added `TestMultipleFunctionArguments` class with 4 tests |
+| Division by zero in `evaluate_list()` | TESTED | Added `test_division_by_zero_in_list_evaluation` test |
 | Complete integration flow | NOT TESTED | No integration tests exist (`tests/integration/__init__.py` is empty) |
 | Formula update operation | NOT TESTED | PUT endpoint now exists (BUG-H7 fixed) |
 | Comparison operators in formula context | NOT TESTED | Only tested in condition filtering context |
@@ -367,9 +367,9 @@ npm run lint
 - [x] Use Chinese metric names from METRIC_DEFINITIONS (GAP-F9) - metrics.py now uses Chinese names
 - [ ] Add missing test coverage
 - [x] Document undocumented API endpoints - specs/05_backend.md updated with all endpoints
-- [ ] Integrate log_data_acquisition() into akshare calls (NEW-1)
-- [ ] Apply track_duration decorator to slow functions (NEW-2)
-- [ ] Fix formula_service race condition (NEW-3)
+- [x] Integrate log_data_acquisition() into akshare calls (NEW-1)
+- [x] Apply track_duration decorator to slow functions (NEW-2)
+- [x] Fix formula_service race condition (NEW-3)
 - [x] Remove duplicate CACHE_TTL in company.py and financial.py (NEW-4)
 
 ### v0.6.0 - Polish & Documentation (COMPLETED)
@@ -378,5 +378,11 @@ npm run lint
 - [x] Fix data source documentation mismatch (specs/02_data_source.md)
 - [ ] Add integration tests
 - [x] Document THS industry classification (specs/09_industry_comparison.md)
+- [x] Integrate log_data_acquisition() into akshare calls (NEW-1)
+- [x] Apply track_duration decorator to slow functions (NEW-2)
+- [x] Fix formula_service race condition with atomic operations (NEW-3)
+- [x] Add test coverage for time series parsing/evaluation (NEW-3)
+- [x] Add test coverage for multiple function arguments (NEW-3)
+- [x] Add test coverage for division by zero in evaluate_list() (NEW-3)
 
 (End of file - total 391 lines)

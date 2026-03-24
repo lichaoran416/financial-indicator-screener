@@ -61,9 +61,12 @@ class TestFormulaServiceSave:
     @pytest.mark.asyncio
     async def test_save_formula(self, mock_redis):
         service = FormulaService()
-        valid, error, formula = await service.save_formula(
-            name="Test Formula", formula="roe + roi", description="A test formula"
-        )
+        with patch.object(
+            RedisManager, "atomic_update_json", side_effect=lambda key, func, ttl=None: func([])
+        ):
+            valid, error, formula = await service.save_formula(
+                name="Test Formula", formula="roe + roi", description="A test formula"
+            )
         assert valid is True
         assert error is None
         assert formula is not None
@@ -118,19 +121,23 @@ class TestFormulaServiceDelete:
     async def test_delete_formula_success(self, mock_redis):
         service = FormulaService()
         formula_id = "test-id-123"
+        original_list = [{"id": formula_id, "name": "Test", "formula": "roe"}]
         with patch.object(
             RedisManager,
-            "get_json",
-            return_value=[{"id": formula_id, "name": "Test", "formula": "roe"}],
+            "atomic_update_json",
+            side_effect=lambda key, func, ttl=None: func(original_list.copy()),
         ):
-            with patch.object(RedisManager, "set_json"):
-                result = await service.delete_formula(formula_id)
-                assert result is True
+            result = await service.delete_formula(formula_id)
+            assert result is True
 
     @pytest.mark.asyncio
     async def test_delete_formula_not_found(self, mock_redis):
         service = FormulaService()
-        with patch.object(RedisManager, "get_json", return_value=[]):
+        with patch.object(
+            RedisManager,
+            "atomic_update_json",
+            side_effect=lambda key, func, ttl=None: func([]),
+        ):
             result = await service.delete_formula("nonexistent-id")
             assert result is False
 

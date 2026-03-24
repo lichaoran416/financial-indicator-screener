@@ -133,9 +133,13 @@ class FormulaService:
             description=description,
         )
 
-        existing = await redis_manager.get_json(self.FORMULAS_KEY) or []
-        existing.append(custom_formula.to_dict())
-        await redis_manager.set_json(self.FORMULAS_KEY, existing, ttl=settings.CACHE_TTL)
+        def append_formula(existing: list) -> list:
+            existing.append(custom_formula.to_dict())
+            return existing
+
+        await redis_manager.atomic_update_json(
+            self.FORMULAS_KEY, append_formula, ttl=settings.CACHE_TTL
+        )
 
         return True, None, custom_formula
 
@@ -151,12 +155,20 @@ class FormulaService:
         return None
 
     async def delete_formula(self, formula_id: str) -> bool:
-        existing = await redis_manager.get_json(self.FORMULAS_KEY) or []
-        updated = [f for f in existing if f.get("id") != formula_id]
-        if len(updated) == len(existing):
-            return False
-        await redis_manager.set_json(self.FORMULAS_KEY, updated, ttl=settings.CACHE_TTL)
-        return True
+        found = [False]
+
+        def remove_formula(existing: list) -> list:
+            new_list = [f for f in existing if f.get("id") != formula_id]
+            if len(new_list) == len(existing):
+                found[0] = False
+            else:
+                found[0] = True
+            return new_list
+
+        await redis_manager.atomic_update_json(
+            self.FORMULAS_KEY, remove_formula, ttl=settings.CACHE_TTL
+        )
+        return found[0]
 
     async def update_formula(
         self,
@@ -165,26 +177,33 @@ class FormulaService:
         formula: Optional[str] = None,
         description: Optional[str] = None,
     ) -> tuple[bool, Optional[str], Optional[Formula]]:
-        existing = await redis_manager.get_json(self.FORMULAS_KEY) or []
+        if formula is not None:
+            valid, error, _ = await self.validate_formula(formula)
+            if not valid:
+                return False, error, None
 
-        for i, item in enumerate(existing):
-            if item.get("id") == formula_id:
-                if name is not None:
-                    item["name"] = name
-                if description is not None:
-                    item["description"] = description
-                if formula is not None:
-                    valid, error, _ = await self.validate_formula(formula)
-                    if not valid:
-                        return False, error, None
-                    item["formula"] = formula
+        updated_item = [None]
 
-                existing[i] = item
-                await redis_manager.set_json(self.FORMULAS_KEY, existing, ttl=settings.CACHE_TTL)
+        def do_update(existing: list) -> list:
+            for i, item in enumerate(existing):
+                if item.get("id") == formula_id:
+                    if name is not None:
+                        item["name"] = name
+                    if description is not None:
+                        item["description"] = description
+                    if formula is not None:
+                        item["formula"] = formula
+                    existing[i] = item
+                    updated_item[0] = item
+                    return existing
+            return existing
 
-                return True, None, Formula.from_dict(item)
+        await redis_manager.atomic_update_json(self.FORMULAS_KEY, do_update, ttl=settings.CACHE_TTL)
 
-        return False, "Formula not found", None
+        if updated_item[0] is None:
+            return False, "Formula not found", None
+
+        return True, None, Formula.from_dict(updated_item[0])
 
 
 formula_service = FormulaService()

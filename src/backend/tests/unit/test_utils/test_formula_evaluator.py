@@ -142,6 +142,95 @@ class TestFormulaEvaluatorDivisionByZero:
         with pytest.raises(FormulaEvaluatorError, match="Division by zero"):
             evaluate(ast)
 
+    def test_division_by_zero_in_list_evaluation(self):
+        metric_values = {
+            "roe": [10.0, 11.0, 12.0],
+            "divisor": [1.0, 0.0, 2.0],
+        }
+        ast = parse("roe / divisor")
+        with pytest.raises(FormulaEvaluatorError, match="Division by zero in list evaluation"):
+            evaluate_time_series(ast, metric_values)
+
+
+class TestTimeSeriesParsing:
+    def test_parse_time_series_single_year(self):
+        ast = parse("ROE[2023]")
+        assert ast.node_type.value == "TIME_SERIES"
+        assert ast.metric_name == "ROE"
+        assert ast.year == 2023
+
+    def test_parse_time_series_year_range(self):
+        ast = parse("ROE[2020:2024]")
+        assert ast.node_type.value == "TIME_SERIES"
+        assert ast.metric_name == "ROE"
+        assert ast.year == (2020, 2024)
+
+    def test_parse_time_series_with_expression(self):
+        ast = parse("AVG(ROE[2020:2024])")
+        assert ast.node_type.value == "FUNCTION_CALL"
+        assert ast.metric_name == "AVG"
+        assert ast.args[0].node_type.value == "TIME_SERIES"
+        assert ast.args[0].metric_name == "ROE"
+        assert ast.args[0].year == (2020, 2024)
+
+
+class TestTimeSeriesEvaluation:
+    def test_evaluate_time_series_single_year_from_dict(self):
+        evaluator = FormulaEvaluator()
+        evaluator.set_metrics_data({"ROE": {2023: 15.5, 2022: 14.0, 2021: 13.0}})
+        ast = parse("ROE[2023]")
+        result = evaluator.evaluate(ast)
+        assert result == 15.5
+
+    def test_evaluate_time_series_year_range_from_dict(self):
+        evaluator = FormulaEvaluator()
+        evaluator.set_metrics_data(
+            {"ROE": {2020: 10.0, 2021: 11.0, 2022: 12.0, 2023: 13.0, 2024: 14.0}}
+        )
+        ast = parse("ROE[2020:2024]")
+        result = evaluator.evaluate(ast)
+        assert result == [10.0, 11.0, 12.0, 13.0, 14.0]
+
+
+class TestMultipleFunctionArguments:
+    def test_evaluate_multiple_args_avg(self):
+        metrics_data = {
+            "roe": 10.0,
+            "roi": 5.0,
+        }
+        ast = parse("AVG(roe, roi)")
+        result = evaluate(ast, metrics_data)
+        assert result == 7.5
+
+    def test_evaluate_multiple_args_sum(self):
+        metrics_data = {
+            "roe": 10.0,
+            "roi": 5.0,
+        }
+        ast = parse("SUM(roe, roi)")
+        result = evaluate(ast, metrics_data)
+        assert result == 15.0
+
+    def test_evaluate_multiple_args_min(self):
+        metrics_data = {
+            "roe": 10.0,
+            "roi": 5.0,
+            "gross_margin": 30.0,
+        }
+        ast = parse("MIN(roe, roi, gross_margin)")
+        result = evaluate(ast, metrics_data)
+        assert result == 5.0
+
+    def test_evaluate_multiple_args_max(self):
+        metrics_data = {
+            "roe": 10.0,
+            "roi": 5.0,
+            "gross_margin": 30.0,
+        }
+        ast = parse("MAX(roe, roi, gross_margin)")
+        result = evaluate(ast, metrics_data)
+        assert result == 30.0
+
 
 class TestFormulaEvaluatorSetMetricsData:
     def test_set_metrics_data(self):
