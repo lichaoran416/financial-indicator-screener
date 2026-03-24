@@ -113,7 +113,8 @@ class FormulaEvaluator:
             if len(value) == 0:
                 raise FormulaEvaluatorError(f"Empty list for metric: {metric_name}")
             if isinstance(year, tuple):
-                return float(value[-1])
+                start_year, end_year = year
+                return value[start_year : end_year + 1]
             return float(value[-1])
 
         raise FormulaEvaluatorError(f"Invalid time series value type for {metric_name}")

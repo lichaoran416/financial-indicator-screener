@@ -1,5 +1,5 @@
 import { For, Show } from 'solid-js';
-import { Condition, Period } from '../../stores/screeningStore';
+import { Condition, Period } from '../../api/screen';
 import ConditionRow from './ConditionRow';
 import LogicToggle from './LogicToggle';
 

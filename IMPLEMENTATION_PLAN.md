@@ -1,6 +1,6 @@
 # Implementation Plan - A股财务指标分析应用
 
-## Status: PHASE 9-10 COMPLETE, PHASE 11-15 IN PROGRESS
+## Status: PHASE 10-15 IN PROGRESS - CRITICAL GAPS REMAIN
 
 ## CRITICAL CONSTRAINT: 只使用akshare提供的数据api, 不要使用其他数据api
 
@@ -10,99 +10,148 @@
 | Component | Status | Notes |
 |-----------|--------|-------|
 | Backend Core (main.py, config.py, redis.py) | ✅ Complete | Only akshare used as data source |
-| Backend Pydantic Models | ✅ Complete | |
+| Backend Pydantic Models | ✅ Complete | Duplicate field definitions removed |
 | Backend API Endpoints (screen, company, metrics, cache) | ✅ Complete | |
 | Backend Financial Service | ✅ Complete | |
 | Backend Akshare Client | ✅ Complete | Only akshare - confirmed no other data APIs |
 | Frontend App.tsx with Routing | ✅ Complete | Lazy loading implemented |
 | Frontend API Client | ✅ Complete | |
-| Frontend Stores | ✅ Complete | formulaStore NOT exported from index.ts |
 | Frontend Condition Components | ✅ Complete | |
-| Frontend Results Components | ✅ Complete | |
+| Frontend Results Components | ✅ Complete | Table view, TreeMap view, pagination |
 | Frontend Common Components | ✅ Complete | |
 | Frontend ScreeningPage | ✅ Complete | Edge case filters exposed in UI |
 | Frontend HistoryPage | ✅ Complete | |
-| Frontend Lib (types, formatters) | ✅ Complete | |
-| Custom Formula Engine (lexer, parser, evaluator) | ✅ Complete | Phase 9 - JTB-005, JTB-006 |
+| Frontend Lib (types, formatters) | ⚠️ Partial | Type mismatches with backend |
+| Custom Formula Engine (lexer, parser, evaluator) | ✅ Complete | Bug 3 fixed - time series range returns all values |
 | Formula API Endpoints | ✅ Complete | validate, evaluate, save, delete |
-| FormulaEditor UI Component | ✅ Complete | With syntax highlighting and saved formulas |
 | CSRC Classification API | ✅ Complete | GET /industry/csrc |
 | SW (申万) Classification API | ✅ Complete | GET /industry/sw-one, GET /industry/sw-three |
+| Peer Comparison API | ✅ Complete | Calculates actual metrics, industry_avg, median, percentile |
+| RadarChart Component | ✅ Complete | For peer comparison visualization |
+| TreeMap Component | ✅ Complete | Default view for screening results |
 
 ---
 
 ## CRITICAL BUGS (Phase 10 - Must Fix First)
 
-### Bug 1: `years` parameter ignored in screen endpoint ✅ FIXED
+### Bug 1: `years` parameter ignored in screen endpoint ✅ VERIFIED FIXED
 - **Location**: `src/backend/app/services/financial.py:333-334`
 - **Issue**: `years` is extracted from conditions but never passed to `get_company_metrics()`
 - **Fix**: Pass `years` to `get_company_metrics()` call
 
-### Bug 2: TTM rolling 12-month uses FIRST values instead of LAST ✅ FIXED
+### Bug 2: TTM rolling 12-month uses FIRST values instead of LAST ✅ VERIFIED FIXED
 - **Location**: `src/backend/app/services/financial.py:175-176`
 - **Issue**: `valid_values = [float(v) for v in values[:periods]...]` takes first 4, not last 4
 - **Fix**: Use `values[-periods:]` instead of `values[:periods]`
 
-### Bug 3: Formula evaluator `ROE[2020:2024]` returns only last value ✅ FIXED
-- **Location**: `src/backend/app/utils/formula_evaluator.py:111`
-- **Issue**: Should collect all 5 years and pass to AVG(), but returns only the last value
-- **Fix**: Collect all values in range and return list for aggregate functions
+### Bug 3: Formula evaluator `ROE[2020:2024]` returns only last value ✅ VERIFIED FIXED
+- **Location**: `src/backend/app/utils/formula_evaluator.py:115-116`
+- **Issue**: When `metrics_data` is a list and `year` is tuple (range), returned `float(value[-1])` instead of collecting all values
+- **Fix**: Changed to `value[start_year : end_year + 1]` to return list of values for the range
 
-### Bug 4: Peer comparison API returns all None values ✅ FIXED
+### Bug 4: Peer comparison API returns all None values ✅ VERIFIED FIXED
 - **Location**: `src/backend/app/api/v1/endpoints/company.py:152-158`
 - **Issue**: compare_with_peers endpoint never fetches peer metrics - all values hardcoded None
 - **Fix**: Implemented actual peer metrics calculation with industry_avg, industry_median, percentile
 
-### Bug 5: CompanyDetailPage data structure mismatch ✅ FIXED
-- **Location**: `src/frontend/src/pages/CompanyDetailPage.tsx` vs `src/backend/app/api/v1/endpoints/company.py`
-- **Issue**: Frontend expects `Record<string, number>` for metrics, but backend returns `{"financial_data": [...]}`
-- **Fix**: Changed backend to return metrics directly without wrapper
+### Bug 5: CompanyDetailPage data structure mismatch ❌ NOT FULLY FIXED
+- **Location**: `src/frontend/src/pages/CompanyDetailPage.tsx` vs `src/backend/app/models/schemas.py`
+- **Issue**: Frontend `api/company.ts` interface expects: `{code, name, industry, status, risk_flag, metrics}` which matches backend
+- **Issue**: BUT `src/frontend/src/lib/types.ts:40-49` defines completely different `CompanyDetailResponse` with `market`, `totalShares`, `circulatingShares`, `financials`, `riskAssessment` - this interface is DEAD CODE
+- **Issue**: Backend `company.py:74` assigns a LIST to `metrics` but schema expects `dict`
 
-### Bug 6: Frontend-backend type mismatches ✅ FIXED
+### Bug 6: Frontend-backend type mismatches ❌ PARTIALLY FIXED
 - **Location**: `src/frontend/src/lib/types.ts` vs `src/backend/app/models/schemas.py`
-- **Issue**: Multiple enum value mismatches:
-  - CompanyStatus: frontend=`normal`/`warning`/`danger` vs backend=`ACTIVE`/`SUSPENDED`/`DELISTED`
-  - RiskFlag: frontend=`none`/`low`/`medium`/`high` vs backend=`NORMAL`/`ST`/`STAR_ST`/`DELISTING_RISK`
-  - MetricInfo missing fields (unit, description)
-  - SavedScreen missing fields (description, logic, updatedAt)
-  - ScreenResponse field name mismatch (results vs companies)
-- **Fix**: Unify enum values and add missing fields in lib/types.ts
-- **Note**: API layer (api/screen.ts, api/company.ts) has correct types; lib/types.ts was legacy
+- **Issue**: `types.ts` CompanyDetailResponse is dead code and completely wrong
+- **Issue**: `api/company.ts` interface is correct and matches backend
+- **Issue**: `risk_flag` vs `riskFlag` (snake_case vs camelCase) - backend returns snake_case, frontend handles it
 
-### Bug 7: ROE shows negative when profit negative - should be N/A ✅ FIXED
+### Bug 7: ROE shows negative when profit negative - should be N/A ✅ VERIFIED FIXED
 - **Location**: `src/backend/app/services/financial.py:248-249`
 - **Issue**: ROE calculated even when net_profit is negative
 - **Fix**: Changed condition to require `net_profit > 0` for ROE calculation
 
-### Bug 8: Industry filter bug with None company industry ✅ FIXED
+### Bug 8: Industry filter bug with None company industry ✅ VERIFIED FIXED
 - **Location**: `src/backend/app/services/financial.py:330-331`
 - **Issue**: Companies without industry data pass through when industry filter is set
 - **Fix**: Skip companies with None industry when filter is specified
 
-### Bug 9: Cache key missing period/years params ✅ FIXED
+### Bug 9: Cache key missing period/years params ✅ VERIFIED FIXED
 - **Location**: `src/backend/app/services/financial.py:300`
 - **Issue**: Screen cache key doesn't include `period` or `years` - causes wrong cache hits
 - **Fix**: Include period and years in cache key generation
 
-### Bug 10: Metrics field silently dropped in screening response ✅ FIXED
+### Bug 10: Metrics field silently dropped in screening response ✅ VERIFIED FIXED
 - **Location**: `src/backend/app/api/v1/endpoints/screen.py` and `src/backend/app/models/schemas.py`
 - **Issue**: `metrics` field added to company dict but dropped during Pydantic validation because CompanyInfo didn't have metrics field
 - **Fix**: Added `metrics: dict` field to CompanyInfo model in schemas.py
 
 ---
 
-## ROI FORMULA BUG ✅ FIXED
+## ROI FORMULA BUG ✅ VERIFIED FIXED
 - **Location**: `src/backend/app/services/financial.py:451-465`
 - **Issue**: ROI defined as `净利润/总投资×100%` but uses `总资产` instead of invested capital
 - **Fix**: Use correct invested capital calculation (总资产 - 流动负债)
 
 ---
 
+## NEW ISSUES DISCOVERED
+
+### Issue 1: Duplicate Field Definitions in ScreenRequest Schema ✅ FIXED
+- **Location**: `src/backend/app/models/schemas.py`
+- **Issue**: Duplicate field definitions at lines 63-80 (dead code)
+- **Fix**: Removed duplicate field definitions
+
+### Issue 2: Frontend Stores Are Dead Code ✅ COMPLETED
+- **Location**: `src/frontend/src/stores/`
+- **Removed**: FormulaEditor.tsx (never imported anywhere)
+- **Removed**: formulaStore.ts (only used by FormulaEditor)
+- **Updated**: stores/index.ts to remove formulaStore export
+- **Updated**: ConditionRow, ConditionBuilder, ExportButton to import types from api/screen instead of stores
+- **Updated**: ResultsTable, TableRow, TableHeader to import types from api/screen instead of stores
+
+### Issue 3: FormulaEditor Missing UI Elements ❌ CANCELLED
+- **Reason**: FormulaEditor was removed as dead code (Issue 2 completed)
+
+### Issue 4: Missing `between` Operator ✅ IMPLEMENTED
+- **Location**: `src/frontend/src/components/condition/OperatorSelector.tsx` and backend
+- **Added**: `between` operator to OperatorSelector
+- **Added**: `value2` optional field to Condition interface (frontend api/screen.ts and backend models/schemas.py)
+- **Updated**: ValueInput to show two input fields when operator is `between`
+- **Updated**: ConditionRow to handle value2 properly
+- **Updated**: backend `_evaluate_conditions` and `_compare` methods to handle `between` operator
+
+### Issue 5: TreeMap Component MISSING ✅ CREATED
+- **Location**: `src/frontend/src/components/visualization/TreeMap.tsx`
+- **Spec requires**: TreeMap as DEFAULT VIEW for screening results
+- **Created TreeMap component with**:
+  - Rectangle visualization where size represents metric value
+  - Metric selector dropdown
+  - Color coding based on value (lower=middle blue, higher=lighter blue)
+  - Click to view company details
+  - Toggle between TreeMap and Table view
+
+### Issue 6: Screen limit default mismatch ✅ FIXED
+- **Location**: `src/backend/app/models/schemas.py`
+- **Spec says**: Default limit should be 100
+- **Fix**: Changed default limit from 50 to 100
+
+---
+
 ## TEST GAPS
+
+### Missing Tests
 - No tests for `years` parameter behavior
 - No tests for TTM calculation
-- No tests for actual condition filtering (only empty conditions tested)
-- Frontend api.test.ts only checks signatures, not actual behavior
+- No tests for actual condition filtering (only empty conditions tested in test_financial.py)
+- No tests for formula evaluator time series range evaluation (Bug 3)
+- No tests for formula_service.py, formula_parser.py, formula_lexer.py, akshare_client.py
+- Integration tests directory is empty
+
+### Existing Test Coverage (thin)
+- `test_financial.py`: Only 5 tests, only tests empty conditions
+- `test_redis.py`: Only 2 tests
+- `src/frontend/tests/api.test.ts`: Only checks signatures, not actual behavior
 
 ---
 
@@ -122,28 +171,28 @@
 | Exclude Industry Option | ✅ Complete | Backend supports exclude_industry; UI dropdown added |
 | Multi-industry Selection UI | ❌ Missing | No multi-select for industry filter |
 
-### Phase 12: Visualization (JTB-014, JTB-015, JTB-016)
+### Phase 12: Visualization (JTB-014, JTB-015, JTB-016) ⚠️ MOSTLY MISSING
 | Component | Status | Notes |
 |-----------|--------|-------|
-| TreeMap Component | ❌ Missing | For screening result distribution |
+| TreeMap Component | ✅ Complete | **SPEC REQUIRED AS DEFAULT VIEW** |
 | TrendComparisonChart | ❌ Missing | Up to 10 companies, dual Y-axis, time zoom |
 | ValueSlider | ❌ Missing | Range slider with histogram |
 | IndustryHeatmap | ❌ Missing | Industry distribution heatmap |
 | ConditionTree visualization | ❌ Missing | Graphical condition structure diagram |
 | Time-Series Line Chart | ❌ Missing | Historical metric trends |
-| Multi-Company Comparison | ❌ Missing | Cannot compare >1 company |
+| Multi-Company Comparison | ❌ Missing | Cannot compare >1 company trends |
 
 ### Phase 13: Multi-field Sorting
 | Component | Status | Notes |
 |-----------|--------|-------|
-| Secondary Sort Support | ❌ Missing | Only single sort supported; spec requires primary + secondary sort |
+| Secondary Sort Support | ⚠️ Partial | Backend has `sort_by_2` and `order_2` fields but frontend doesn't expose UI for secondary sort |
 
 ### Phase 14: Edge Case Enhancements
 | Component | Status | Notes |
 |-----------|--------|-------|
-| ROE N/A when profit negative | ❌ Not implemented | Shows negative instead of N/A |
-| Risk warning text messages | ❌ Not implemented | Only badges, no warning text |
-| Mark missing years in results | ❌ Not implemented | Years not marked |
+| ROE N/A when profit negative | ✅ Complete | Verified in financial.py |
+| Risk warning text messages | ❌ Missing | Only badges, no warning text |
+| Mark missing years in results | ❌ Missing | Years not marked |
 
 ### Phase 15: UX & Performance
 | Component | Status | Notes |
@@ -155,43 +204,24 @@
 
 ---
 
-## PARTIALLY IMPLEMENTED
-| Component | Status | Gap | Spec Reference |
-|-----------|--------|-----|----------------|
-| TTM Rolling 12-month | ⚠️ Partial | Uses first 4 values instead of last 4 | specs/02_financial_metrics.md |
-| Data Disclosure Timing | ❌ Missing | No quarterly/annual cycle alignment (Q1: Apr, Q2: Aug, Q3: Oct, Q4: Mar-Apr) | specs/03_data_source.md |
-| Quarterly Period | ⚠️ Partial | Backend supports param but doesn't properly fetch quarterly data | specs/02_financial_metrics.md |
-| Multi-field Sorting | ⚠️ Partial | Only single sort; spec requires primary + secondary | specs/01_core_jobs.md (JTB-002) |
-| Negative Profit ROE | ⚠️ Partial | Shows negative instead of N/A | specs/09_edge_cases.md (JTB-008) |
-
----
-
 ## Priority Order (Implementation Sequence)
-
-### Phase 9: Custom Formula Engine (JTB-005, JTB-006) - ✅ COMPLETE
-- [x] Create `formula_lexer.py` - Tokenize formula strings
-- [x] Create `formula_parser.py` - Parse tokens into AST
-- [x] Create `formula_evaluator.py` - Evaluate AST against financial data
-- [x] Create `formula_service.py` - Business logic for formula management
-- [x] Add formula API endpoints (validate, evaluate)
-- [x] Add `CustomFormula` type to frontend lib/types.ts
-- [x] Create `formulaStore.ts` for custom formula state management
-- [x] Create `FormulaEditor` UI component with syntax highlighting
-- [x] Add formula validation API call to frontend
 
 ### Phase 10: Critical Bug Fixes - MUST FIX FIRST
 - [x] Fix Bug 1: Pass `years` parameter to `get_company_metrics()` in `financial.py:333-334`
 - [x] Fix Bug 2: TTM rolling uses FIRST values - change to LAST in `financial.py:175-176`
-- [x] Fix Bug 3: Formula evaluator `ROE[2020:2024]` returns only last value in `formula_evaluator.py:111`
+- [x] Fix Bug 3: Formula evaluator `ROE[2020:2024]` returns only last value in `formula_evaluator.py:115-116`
 - [x] Fix Bug 4: Implement peer comparison API with actual metrics in `company.py:152-158`
-- [x] Fix Bug 5: Align CompanyDetailPage data structure with backend response
-- [x] Fix Bug 6: Unify frontend/backend types (CompanyStatus, RiskFlag, MetricInfo, SavedScreen, ScreenResponse)
+- [ ] Fix Bug 5/6: Align CompanyDetailResponse - fix backend metrics type (list vs dict), remove dead code in types.ts
+- [x] Fix Issue 1: Remove duplicate field definitions in ScreenRequest schema
+- [x] Fix Issue 2: Remove dead code (FormulaEditor.tsx, formulaStore.ts)
+- [x] Fix Issue 3: CANCELLED - FormulaEditor removed as dead code
+- [x] Fix Issue 4: Add `between` operator to OperatorSelector
+- [x] Fix Issue 6: Change Screen limit default from 50 to 100
 - [x] Fix Bug 7: ROE shows N/A when profit negative in `financial.py`
 - [x] Fix Bug 8: Skip companies with None industry when filter set in `financial.py:330-331`
 - [x] Fix Bug 9: Include period/years in cache key in `financial.py:300`
 - [x] Fix Bug 10: Preserve metrics field in screening response in `screen.py`
 - [x] Fix ROI formula bug: Use invested capital instead of total assets in `financial.py:451-465`
-- [x] Export formulaStore from stores/index.ts
 
 ### Phase 11: Industry Comparison (JTB-011, JTB-012, JTB-013)
 - [x] Implement peer comparison API endpoint with actual metrics calculation
@@ -202,8 +232,8 @@
 - [x] Add exclude industry option to screening UI
 - [ ] Add multi-industry selection to screening UI
 
-### Phase 12: Visualization (JTB-014, JTB-015, JTB-016)
-- [ ] Create TreeMap component for result distribution
+### Phase 12: Visualization (JTB-014, JTB-015, JTB-016) - HIGH PRIORITY
+- [x] **Create TreeMap component** - SPEC SAYS DEFAULT VIEW, MUST IMPLEMENT
 - [ ] Create TrendComparisonChart (up to 10 companies, dual Y-axis)
 - [ ] Create ConditionTree visualization
 - [ ] Create ValueSlider with histogram
@@ -212,7 +242,7 @@
 - [ ] Create Multi-Company Comparison feature
 
 ### Phase 13: Multi-field Sorting
-- [ ] Add secondary sort field support (primary + secondary sort)
+- [ ] Add secondary sort field UI (backend already supports `sort_by_2`, `order_2`)
 
 ### Phase 14: Edge Case Enhancements
 - [ ] Add risk warning text messages (not just badges)
@@ -224,23 +254,32 @@
 - [ ] Add createMemo for expensive computations
 - [ ] Add cache invalidation mechanism
 
+### Cleanup (Can do anytime)
+- [ ] Remove dead code: unused `CompanyDetailResponse` in `types.ts` lines 40-49
+- [ ] Remove dead code: `FinancialData` and `RiskAssessment` interfaces in `types.ts`
+- [ ] Remove dead code: FormulaEditor.tsx is never imported anywhere
+- [ ] Remove dead code: All 5 stores are never used by pages (except formulaStore used by dead FormulaEditor)
+- [ ] Add tests for formula_evaluator time series range (Bug 3)
+- [ ] Add tests for TTM calculation
+- [ ] Add tests for actual condition filtering
+- [ ] Create integration tests (integration/ directory is empty)
+
 ---
 
 ## Spec Coverage Summary
 | Spec | Topic | Status | Verification |
 |------|-------|--------|--------------|
 | specs/00_overview.md | Product overview | ✅ Complete | Document exists |
-| specs/01_core_jobs.md | Core user jobs (JTB-001 to JTB-004) | ✅ Complete | Multi-condition filtering, sorting, details, save all work |
-| specs/02_financial_metrics.md | Financial metrics formulas | ⚠️ Partial | 9 metrics implemented; ROI formula bug; TTM bug; ROE N/A bug |
-| specs/03_data_source.md | akshare + Redis caching | ⚠️ Partial | akshare + Redis done; data disclosure timing NOT implemented |
-| specs/04_technical_architecture.md | Tech stack definition | ✅ Complete | Matches implementation |
-| specs/05_frontend.md | Frontend pages and components | ⚠️ Partial | All pages done; charts/components missing; type mismatches |
-| specs/06_backend.md | API endpoints | ⚠️ Partial | Endpoints exist; peer comparison returns None |
-| specs/07_ux.md | UX requirements | ⚠️ Partial | Lazy loading done; virtual scrolling/debounce missing |
-| specs/08_custom_formula.md | Custom formula engine | ✅ Complete | Formula lexer, parser, evaluator, service, API, and UI |
-| specs/09_edge_cases.md | Edge case handling | ⚠️ Partial | Status/risk flags done; N/A marking incomplete |
-| specs/10_industry_comparison.md | Industry comparison | ⚠️ Partial | CSRC/SW APIs done; peer comparison, benchmark, radar chart done |
-| specs/11_visualization.md | Data visualization | ⚠️ Partial | RadarChart component done; TreeMap, TrendComparisonChart, ValueSlider, IndustryHeatmap, ConditionTree missing |
+| specs/01_core_jobs.md | Core user jobs (JTB-001 to JTB-004) | ⚠️ Partial | Multi-condition filtering works; sorting works; details and save work; TreeMap MISSING |
+| specs/02_data_source.md | akshare + Redis caching | ✅ Complete | akshare + Redis done |
+| specs/03_technical_architecture.md | Tech stack definition | ✅ Complete | Matches implementation |
+| specs/04_frontend.md | Frontend pages and components | ⚠️ Partial | Pages done; TreeMap created; FormulaEditor cancelled (removed); type mismatches remain |
+| specs/05_backend.md | API endpoints | ⚠️ Partial | Endpoints exist; undocumented endpoints (/industry/*, /formula/*, /cache/refresh) |
+| specs/06_ux.md | UX requirements | ⚠️ Partial | Lazy loading done; virtual scrolling/debounce missing |
+| specs/07_custom_formula.md | Custom formula engine | ⚠️ Partial | Lexer/parser/evaluator done; Bug 3 fixed; FormulaEditor cancelled (removed) |
+| specs/08_edge_cases.md | Edge case handling | ✅ Mostly | Status/risk flags done; ROE N/A done; warning text missing |
+| specs/09_industry_comparison.md | Industry comparison | ✅ Mostly | CSRC/SW APIs done; peer comparison, benchmark, radar chart done |
+| specs/10_visualization.md | Data visualization | ⚠️ Partial | RadarChart done; **TreeMap COMPLETED (required as default view)** |
 
 ---
 
@@ -251,7 +290,7 @@ After implementation:
 # Backend
 cd src/backend
 pip install -r requirements.txt
-pytest tests/backend/
+pytest tests/ -v
 mypy app/
 ruff check app/
 
@@ -262,3 +301,47 @@ npm test
 npm run typecheck
 npm run lint
 ```
+
+---
+
+## Summary of Critical Fixes Needed (In Priority Order)
+
+1. ~~[CRITICAL] Bug 3 (formula_evaluator.py:115-116)~~ - ✅ FIXED
+2. ~~[CRITICAL] TreeMap component~~ - ✅ CREATED
+3. **[HIGH] Bug 5/6 (CompanyDetailResponse)** - Backend metrics is list, schema expects dict; frontend types.ts dead code
+4. ~~[HIGH] Issue 1 (schemas.py)~~ - ✅ FIXED (duplicate field definitions removed)
+5. ~~[MEDIUM] Issue 2 (stores)~~ - ✅ COMPLETED (dead code removed)
+6. ~~[MEDIUM] Issue 3 (FormulaEditor)~~ - ❌ CANCELLED (FormulaEditor removed)
+7. ~~[MEDIUM] Issue 4 (OperatorSelector)~~ - ✅ IMPLEMENTED (`between` operator added)
+8. ~~[MEDIUM] Issue 6 (limit default)~~ - ✅ FIXED (changed to 100)
+9. **[LOW] Secondary sort UI** - Backend supports but frontend doesn't expose
+10. **[LOW] Edge case warning text** - Risk warnings show badges but no explanatory text
+
+---
+
+## Dead Code Inventory (Confirmed)
+
+| Item | Location | Status |
+|------|----------|--------|
+| `CompanyDetailResponse` (wrong) | `src/frontend/src/lib/types.ts:40-49` | Dead - never used |
+| `FinancialData` interface | `src/frontend/src/lib/types.ts:51-61` | Dead - only used by dead interface |
+| `RiskAssessment` interface | `src/frontend/src/lib/types.ts:64-68` | Dead - only used by dead interface |
+| `FormulaEditor.tsx` | `src/frontend/src/components/formula/FormulaEditor.tsx` | ✅ REMOVED (Issue 2) |
+| `formulaStore.ts` | `src/frontend/src/stores/formulaStore.ts` | ✅ REMOVED (Issue 2) |
+| `screeningStore.ts` | `src/frontend/src/stores/screeningStore.ts` | Dead - pages use local createSignal() |
+| `companyStore.ts` | `src/frontend/src/stores/companyStore.ts` | Dead - pages use local createSignal() |
+| `savedConditionsStore.ts` | `src/frontend/src/stores/savedConditionsStore.ts` | Dead - pages use local createSignal() |
+| `uiStore.ts` | `src/frontend/src/stores/uiStore.ts` | Dead - never imported anywhere |
+| `components/formula/` directory | entire directory | ✅ REMOVED (contained FormulaEditor) |
+| `integration/__init__.py` | `src/backend/tests/integration/__init__.py` | Empty - no integration tests |
+
+---
+
+## Items Still Remaining
+
+- Secondary sort UI (backend supports but frontend doesn't expose)
+- Risk warning text messages
+- Virtual scrolling for large result sets
+- Debounce (300ms) for condition inputs
+- Memoization (createMemo) for performance
+- Cache invalidation mechanism

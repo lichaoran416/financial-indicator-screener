@@ -30,8 +30,9 @@ class RiskFlag(str, Enum):
 
 class Condition(BaseModel):
     metric: str = Field(..., description="Metric identifier")
-    operator: str = Field(..., description="Comparison operator (>, <, >=, <=, ==, !=)")
+    operator: str = Field(..., description="Comparison operator (>, <, >=, <=, ==, !=, between)")
     value: float = Field(..., description="Value to compare against")
+    value2: Optional[float] = Field(default=None, description="Second value for between operator")
     period: Period = Field(default=Period.ANNUAL, description="Data period type")
     years: Optional[int] = Field(default=None, description="Number of years for comparison")
 
@@ -40,9 +41,11 @@ class ScreenRequest(BaseModel):
     conditions: list[Condition] = Field(
         default_factory=list, description="List of screening conditions"
     )
-    sort_by: Optional[str] = Field(default=None, description="Metric to sort by")
-    order: SortOrder = Field(default=SortOrder.DESC, description="Sort order")
-    limit: int = Field(default=50, ge=1, le=500, description="Results limit")
+    sort_by: Optional[str] = Field(default=None, description="Primary metric to sort by")
+    order: SortOrder = Field(default=SortOrder.DESC, description="Primary sort order")
+    sort_by_2: Optional[str] = Field(default=None, description="Secondary metric to sort by")
+    order_2: SortOrder = Field(default=SortOrder.DESC, description="Secondary sort order")
+    limit: int = Field(default=100, ge=1, le=500, description="Results limit")
     page: int = Field(default=1, ge=1, description="Page number")
     industry: Optional[str] = Field(default=None, description="Industry filter (partial match)")
     exclude_industry: Optional[str] = Field(

@@ -1,4 +1,4 @@
-import { Condition, Period } from '../../stores/screeningStore';
+import { Condition, Period } from '../../api/screen';
 import MetricDropdown from './MetricDropdown';
 import OperatorSelector from './OperatorSelector';
 import ValueInput from './ValueInput';
@@ -15,11 +15,19 @@ export default function ConditionRow(props: ConditionRowProps) {
   };
 
   const handleOperatorChange = (operator: string) => {
-    props.onUpdate({ ...props.condition, operator });
+    const updated = { ...props.condition, operator };
+    if (operator !== 'between') {
+      delete updated.value2;
+    }
+    props.onUpdate(updated);
   };
 
-  const handleValueChange = (value: number) => {
-    props.onUpdate({ ...props.condition, value });
+  const handleValueChange = (value: number, value2?: number) => {
+    const updated = { ...props.condition, value };
+    if (value2 !== undefined) {
+      updated.value2 = value2;
+    }
+    props.onUpdate(updated);
   };
 
   const handlePeriodChange = (period: Period) => {
@@ -48,6 +56,8 @@ export default function ConditionRow(props: ConditionRowProps) {
       />
       <ValueInput
         value={props.condition.value}
+        value2={props.condition.value2}
+        operator={props.condition.operator}
         onChange={handleValueChange}
       />
       <div style={{ display: 'flex', 'flex-direction': 'column', gap: '0.25rem' }}>

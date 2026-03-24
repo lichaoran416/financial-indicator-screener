@@ -1,6 +1,6 @@
 /* eslint-disable no-undef */
 import { Component } from 'solid-js';
-import { CompanyInfo } from '../../stores/screeningStore';
+import { CompanyInfo } from '../../api/screen';
 import styles from './ExportButton.module.css';
 
 interface ExportButtonProps {

@@ -1,4 +1,4 @@
-type Operator = '>' | '<' | '>=' | '<=' | '==' | '!=';
+type Operator = '>' | '<' | '>=' | '<=' | '==' | '!=' | 'between';
 
 const operators: { value: Operator; label: string }[] = [
   { value: '>', label: '>' },
@@ -7,6 +7,7 @@ const operators: { value: Operator; label: string }[] = [
   { value: '<=', label: '<=' },
   { value: '==', label: '=' },
   { value: '!=', label: '!=' },
+  { value: 'between', label: 'between' },
 ];
 
 interface OperatorSelectorProps {

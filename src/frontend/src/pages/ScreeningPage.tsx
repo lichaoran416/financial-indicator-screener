@@ -5,6 +5,7 @@ import { LoadingSpinner, ErrorState, EmptyState, TimeoutState } from '../compone
 import { screenCompanies, Condition, CompanyInfo, SortOrder } from '../api/screen';
 import { getMetrics, MetricInfo } from '../api/metrics';
 import { getCSRCIndustries, getSWIndustries } from '../api/company';
+import TreeMap from '../components/visualization/TreeMap';
 import type { IndustryClassification } from '../lib/types';
 
 const SCREEN_CONDITIONS_KEY = 'loaded_screen_conditions';
@@ -30,6 +31,8 @@ export default function ScreeningPage() {
   const [excludeIndustry, setExcludeIndustry] = createSignal<string>('');
   const [industries, setIndustries] = createSignal<IndustryClassification[]>([]);
   const [industryType, setIndustryType] = createSignal<'csrc' | 'sw1' | 'sw3'>('csrc');
+  const [viewMode, setViewMode] = createSignal<'treemap' | 'table'>('treemap');
+  const [selectedCompany, setSelectedCompany] = createSignal<CompanyInfo | null>(null);
 
   const loadMetrics = async () => {
     try {
@@ -163,6 +166,14 @@ export default function ScreeningPage() {
   const handleSimplify = () => {
     setConditions([]);
     setPage(1);
+  };
+
+  const handleCompanySelect = (company: CompanyInfo) => {
+    setSelectedCompany(company);
+  };
+
+  const handleCloseDetail = () => {
+    setSelectedCompany(null);
   };
 
   const totalPages = () => Math.ceil(total() / limit());
@@ -330,12 +341,60 @@ export default function ScreeningPage() {
         </Show>
 
         <Show when={!loading() && !error() && companies().length > 0}>
-          <ResultsTable
-            companies={companies()}
-            onSort={handleSort}
-            sortColumn={sortColumn() as keyof CompanyInfo | null}
-            sortOrder={sortOrder()}
-          />
+          <div style={{ display: 'flex', 'justify-content': 'space-between', 'align-items': 'center', 'margin-bottom': '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', 'align-items': 'center' }}>
+              <button
+                type="button"
+                onClick={() => setViewMode('treemap')}
+                style={{
+                  padding: '0.375rem 0.75rem',
+                  'border-radius': '4px',
+                  border: '1px solid',
+                  'border-color': viewMode() === 'treemap' ? '#1976d2' : '#ccc',
+                  background: viewMode() === 'treemap' ? '#e3f2fd' : 'white',
+                  color: viewMode() === 'treemap' ? '#1976d2' : '#666',
+                  'font-size': '0.875rem',
+                  cursor: 'pointer',
+                  'font-weight': viewMode() === 'treemap' ? '600' : '400',
+                }}
+              >
+                TreeMap
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                style={{
+                  padding: '0.375rem 0.75rem',
+                  'border-radius': '4px',
+                  border: '1px solid',
+                  'border-color': viewMode() === 'table' ? '#1976d2' : '#ccc',
+                  background: viewMode() === 'table' ? '#e3f2fd' : 'white',
+                  color: viewMode() === 'table' ? '#1976d2' : '#666',
+                  'font-size': '0.875rem',
+                  cursor: 'pointer',
+                  'font-weight': viewMode() === 'table' ? '600' : '400',
+                }}
+              >
+                Table
+              </button>
+            </div>
+          </div>
+
+          <Show when={viewMode() === 'treemap'}>
+            <TreeMap
+              companies={companies()}
+              onSelectCompany={handleCompanySelect}
+            />
+          </Show>
+
+          <Show when={viewMode() === 'table'}>
+            <ResultsTable
+              companies={companies()}
+              onSort={handleSort}
+              sortColumn={sortColumn() as keyof CompanyInfo | null}
+              sortOrder={sortOrder()}
+            />
+          </Show>
         </Show>
 
         <Show when={!loading() && !error() && companies().length > 0 && totalPages() > 1}>
@@ -345,6 +404,80 @@ export default function ScreeningPage() {
               totalPages={totalPages()}
               onPageChange={handlePageChange}
             />
+          </div>
+        </Show>
+
+        <Show when={selectedCompany()}>
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0,0,0,0.5)',
+              display: 'flex',
+              'justify-content': 'center',
+              'align-items': 'center',
+              'z-index': 1000,
+            }}
+            onClick={handleCloseDetail}
+          >
+            <div
+              style={{
+                background: 'white',
+                padding: '1.5rem',
+                'border-radius': '8px',
+                'max-width': '600px',
+                width: '90%',
+                'max-height': '80vh',
+                overflow: 'auto',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', 'justify-content': 'space-between', 'align-items': 'flex-start', 'margin-bottom': '1rem' }}>
+                <div>
+                  <h2 style={{ margin: 0, 'font-size': '1.25rem' }}>{selectedCompany()!.name}</h2>
+                  <p style={{ margin: '0.25rem 0 0 0', color: '#666', 'font-size': '0.875rem' }}>
+                    {selectedCompany()!.code} | {selectedCompany()!.industry || 'N/A'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCloseDetail}
+                  style={{
+                    padding: '0.25rem 0.5rem',
+                    'border-radius': '4px',
+                    border: '1px solid #ccc',
+                    background: '#f5f5f5',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+              <div style={{ 'font-size': '0.875rem', color: '#333' }}>
+                <p><strong>Status:</strong> {selectedCompany()!.status}</p>
+                <p><strong>Risk Flag:</strong> {selectedCompany()!.risk_flag}</p>
+                <Show when={selectedCompany()!.metrics && Object.keys(selectedCompany()!.metrics!).length > 0}>
+                  <div style={{ 'margin-top': '1rem' }}>
+                    <strong>Metrics:</strong>
+                    <div style={{ display: 'grid', 'grid-template-columns': 'repeat(2, 1fr)', gap: '0.5rem', 'margin-top': '0.5rem' }}>
+                      <For each={Object.entries(selectedCompany()!.metrics || {})}>
+                        {([key, value]) => (
+                          <div style={{ padding: '0.25rem', background: '#f5f5f5', 'border-radius': '4px' }}>
+                            <span style={{ color: '#666' }}>{key.toUpperCase()}:</span>
+                            <span style={{ 'margin-left': '0.5rem', 'font-weight': '500' }}>
+                              {typeof value === 'number' ? value.toFixed(4) : value}
+                            </span>
+                          </div>
+                        )}
+                      </For>
+                    </div>
+                  </div>
+                </Show>
+              </div>
+            </div>
           </div>
         </Show>
       </section>

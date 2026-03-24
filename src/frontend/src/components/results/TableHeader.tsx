@@ -1,5 +1,5 @@
 import { Component, Show } from 'solid-js';
-import { CompanyInfo, SortOrder } from '../../stores/screeningStore';
+import { CompanyInfo, SortOrder } from '../../api/screen';
 import styles from './TableHeader.module.css';
 
 interface TableHeaderProps {

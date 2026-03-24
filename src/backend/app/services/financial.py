@@ -298,6 +298,8 @@ class FinancialService:
         conditions: list[dict[str, Any]],
         sort_by: Optional[str] = None,
         order: str = "desc",
+        sort_by_2: Optional[str] = None,
+        order_2: str = "desc",
         limit: int = 50,
         page: int = 1,
         industry: Optional[str] = None,
@@ -309,7 +311,7 @@ class FinancialService:
     ) -> dict[str, Any]:
         period = conditions[0].get("period", "annual") if conditions else "annual"
         years = conditions[0].get("years", 5) if conditions else 5
-        cache_key = f"screen:{hash(str(conditions))}:{sort_by}:{order}:{limit}:{page}:{industry}:{exclude_industry}:{include_suspended}:{profit_only}:{include_st}:{require_complete_data}:{period}:{years}"
+        cache_key = f"screen:{hash(str(conditions))}:{sort_by}:{order}:{sort_by_2}:{order_2}:{limit}:{page}:{industry}:{exclude_industry}:{include_suspended}:{profit_only}:{include_st}:{require_complete_data}:{period}:{years}"
         cached = await redis_manager.get_json(cache_key)
         if cached:
             return cached
@@ -368,6 +370,13 @@ class FinancialService:
                 screened.append(company)
 
         if sort_by:
+            if sort_by_2:
+                reverse_2 = order_2.lower() == "desc"
+                screened = sorted(
+                    screened,
+                    key=lambda x: x.get("metrics", {}).get(sort_by_2) or 0,
+                    reverse=reverse_2,
+                )
             reverse = order.lower() == "desc"
             screened = sorted(
                 screened,
@@ -403,6 +412,7 @@ class FinancialService:
             metric = condition.get("metric")
             operator = condition.get("operator")
             value = condition.get("value")
+            value2 = condition.get("value2")
 
             if not metric or metric not in metrics:
                 return False
@@ -411,12 +421,18 @@ class FinancialService:
             if metric_value is None:
                 return False
 
-            if not self._compare(metric_value, operator, value):
+            if not self._compare(metric_value, operator, value, value2):
                 return False
 
         return True
 
-    def _compare(self, metric_value: float, operator: str, target_value: float) -> bool:
+    def _compare(
+        self,
+        metric_value: float,
+        operator: str,
+        target_value: float,
+        target_value2: Optional[float] = None,
+    ) -> bool:
         if operator == ">":
             return metric_value > target_value
         elif operator == "<":
@@ -429,6 +445,10 @@ class FinancialService:
             return abs(metric_value - target_value) < 1e-9
         elif operator == "!=":
             return abs(metric_value - target_value) >= 1e-9
+        elif operator == "between":
+            if target_value2 is None:
+                return False
+            return target_value <= metric_value <= target_value2
         return False
 
     def calculate_metric(self, metric_id: str, financial_data: dict[str, Any]) -> Optional[float]:

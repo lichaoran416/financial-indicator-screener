@@ -1,5 +1,5 @@
 import { Component, For } from 'solid-js';
-import { CompanyInfo, SortOrder } from '../../stores/screeningStore';
+import { CompanyInfo, SortOrder } from '../../api/screen';
 import TableHeader from './TableHeader';
 import TableRow from './TableRow';
 import styles from './ResultsTable.module.css';

@@ -7,6 +7,7 @@ export interface Condition {
   metric: string;
   operator: string;
   value: number;
+  value2?: number;
   period?: Period;
   years?: number;
 }
@@ -31,6 +32,7 @@ export interface CompanyInfo {
   status: "ACTIVE" | "SUSPENDED" | "DELISTED";
   risk_flag: "NORMAL" | "ST" | "STAR_ST" | "DELISTING_RISK";
   industry?: string;
+  metrics?: Record<string, number>;
 }
 
 export interface ScreenResponse {
