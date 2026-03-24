@@ -248,7 +248,7 @@
 
 ### Phase 15: UX & Performance
 - [ ] Implement virtual scrolling for large result sets
-- [ ] Add 300ms debounce to condition inputs
+- [x] Add 300ms debounce to condition inputs - Created debounce.ts utility, applied in ScreeningPage
 - [ ] Add createMemo for expensive computations
 - [ ] Add cache invalidation mechanism
 

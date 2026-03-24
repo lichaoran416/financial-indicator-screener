@@ -10,6 +10,7 @@ import TreeMap from '../components/visualization/TreeMap';
 import IndustryHeatmap from '../components/visualization/IndustryHeatmap';
 import TrendComparisonChart from '../components/visualization/TrendComparisonChart';
 import type { IndustryClassification } from '../lib/types';
+import { debounce } from '../lib/debounce';
 
 const riskWarnings: Record<CompanyInfo['risk_flag'], string> = {
   NORMAL: '',
@@ -129,12 +130,14 @@ export default function ScreeningPage() {
     }
   };
 
+  const debouncedScreen = debounce(handleScreen, 300);
+
   createEffect(() => {
     const conds = conditions();
     const ind = industry();
     const exclInd = excludeIndustry();
     if (conds.length > 0 || ind.length > 0 || exclInd.length > 0) {
-      handleScreen();
+      debouncedScreen();
     }
   });
 
