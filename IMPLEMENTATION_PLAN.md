@@ -1,6 +1,6 @@
 # Implementation Plan - A股财务指标分析应用
 
-## Status: v0.7.1 - ADDED: Integration tests for formula API + FIXED: NEW-11 (time series with JSON string keys)
+## Status: v0.7.2 - FIXED: Python deprecation warnings (datetime.utcnow() -> datetime.now(timezone.utc))
 
 ## CRITICAL CONSTRAINT: 只使用akshare提供的数据api, 不要使用其他数据api
 
