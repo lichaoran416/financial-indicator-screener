@@ -90,6 +90,13 @@ export const TrendComparisonChart: Component<TrendComparisonChartProps> = (props
 
   const availableMetrics = ['roe', 'roi', 'gross_margin', 'net_profit_growth', 'revenue_growth', 'debt_ratio', 'current_ratio'];
 
+  const yearsMap: Record<TimeRange, number> = {
+    '1Y': 1,
+    '3Y': 3,
+    '5Y': 5,
+    'ALL': 999,
+  };
+
   const allDates = createMemo(() => {
     const data = trendData();
     if (!data) return [];
@@ -111,13 +118,6 @@ export const TrendComparisonChart: Component<TrendComparisonChartProps> = (props
   const filteredDates = createMemo(() => {
     const dates = allDates();
     if (dates.length === 0) return [];
-
-    const yearsMap: Record<TimeRange, number> = {
-      '1Y': 1,
-      '3Y': 3,
-      '5Y': 5,
-      'ALL': 999,
-    };
 
     const maxYears = yearsMap[timeRange()];
     const cutoffYear = new Date().getFullYear() - maxYears;
@@ -157,7 +157,7 @@ export const TrendComparisonChart: Component<TrendComparisonChartProps> = (props
         codes,
         metrics: [leftMetric(), rightMetric()],
         period: 'annual',
-        years: 5,
+        years: yearsMap[timeRange()],
       });
 
       setTrendData(response.data);

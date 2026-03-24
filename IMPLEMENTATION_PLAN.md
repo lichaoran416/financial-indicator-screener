@@ -33,10 +33,10 @@
 
 - [ ] **GAP-F1** Type inconsistency - Three different Condition definitions in `api/screen.ts`, `stores/screeningStore.ts`, `lib/types.ts` with mismatched fields
 - [x] **GAP-F2** `OperatorSelector.tsx:43` - ~~Duplicate import `from 'solid-js'`~~ **VERIFIED NOT A BUG**: Only one import exists
-- [ ] **GAP-F3** `ConditionTree.tsx:193` - Shows "Unknown metric" when formula is used instead of metric (should check `condition.formula` as fallback)
-- [ ] **GAP-F4** `ExportButton.tsx:13-19` - CSV export only includes company info (Code, Name, Industry, Status, Risk Flag), does NOT include calculated metrics or available_years
+- [x] **GAP-F3** `ConditionTree.tsx:193` - Shows "Unknown metric" when formula is used instead of metric (should check `condition.formula` as fallback) [FIXED]
+- [x] **GAP-F4** `ExportButton.tsx:13-19` - CSV export only includes company info (Code, Name, Industry, Status, Risk Flag), does NOT include calculated metrics or available_years [FIXED]
 - [ ] **GAP-F5** `TreeMap.tsx:90-142` - Uses simple slice-and-dice algorithm instead of proper squarified treemap
-- [ ] **GAP-F6** `TrendComparisonChart.tsx:155-161` - Time range selector is cosmetic only; always fetches 5 years regardless of selection
+- [x] **GAP-F6** `TrendComparisonChart.tsx:155-161` - Time range selector is cosmetic only; always fetches 5 years regardless of selection [FIXED: Now uses yearsMap[timeRange()] to fetch correct years]
 - [ ] **GAP-F7** `FormulaEditor.tsx:204-212` - Shows raw formula preview, not actual calculated result. `evaluateFormula` API exists but is never called
 - [ ] **GAP-F8** `Pagination.tsx` - No direct page number input (only Previous/Next/ellipsis buttons)
 - [x] **GAP-F9** `metrics.py:7-17` - Hardcoded English metric names instead of Chinese names from `FinancialService.METRIC_DEFINITIONS` (FIXED: Now uses Chinese names from METRIC_DEFINITIONS)
@@ -356,13 +356,13 @@ npm run lint
 - [x] Fix secondary sorting not being passed (BUG-H8)
 - [x] Fix sort key causing missing data to sort to top (BUG-H9)
 - [ ] Fix frontend type inconsistencies (GAP-F1)
-- [ ] Show formula name in ConditionTree for formula conditions (GAP-F3)
-- [ ] Include calculated metrics in CSV export (GAP-F4)
+- [x] Show formula name in ConditionTree for formula conditions (GAP-F3) - condition.metric || condition.formula
+- [x] Include calculated metrics in CSV export (GAP-F4) - ExportButton now exports available_years and metrics
 - [ ] Implement squarified TreeMap algorithm (GAP-F5)
-- [ ] Make time range selector functional (GAP-F6)
+- [x] Make time range selector functional (GAP-F6) - Now uses yearsMap[timeRange()] to fetch correct years
 - [ ] Show formula calculation result in FormulaEditor (GAP-F7)
 - [ ] Add direct page number input to pagination (GAP-F8)
-- [x] Use Chinese metric names from METRIC_DEFINITIONS (GAP-F9)
+- [x] Use Chinese metric names from METRIC_DEFINITIONS (GAP-F9) - metrics.py now uses Chinese names
 - [ ] Add missing test coverage
 - [ ] Document undocumented API endpoints
 - [ ] Integrate log_data_acquisition() into akshare calls (NEW-1)
