@@ -1,6 +1,6 @@
 # Implementation Plan - A股财务指标分析应用
 
-## Status: v0.7.7 - VERIFIED: All tests pass (147 backend, 53 frontend), typecheck passes, lint warnings only, frontend builds successfully.
+## Status: v0.7.8 - VERIFIED: All tests pass (147 backend, 53 frontend), typecheck passes, lint warnings only, frontend builds successfully. BUG-F4 (saved screens index TTL refresh) now fixed.
 
 ## CRITICAL CONSTRAINT: 只使用akshare提供的数据api, 不要使用其他数据api
 
@@ -13,7 +13,7 @@
 - [x] **BUG-F1** `formula_evaluator.py:118-123` - Year range uses list index instead of year value. `ROE[2020:2024]` accesses indices 2020-2024 instead of years 2020-2024
 - [x] **BUG-F2** `formula_parser.py:162-166` - Checks `TokenType.IDENTIFIER` instead of `TokenType.COLON` for range syntax
 - [x] **BUG-F3** `formula_evaluator.py:238-242` - Division by zero in `evaluate_list()` silently returns 0.0 instead of raising error
-- [x] **BUG-F4** `screen.py:106-108` - **TTL DESIGN FLAW**: All saved screens stored in SINGLE Redis key with one TTL. When TTL expires, ALL saved screens are lost at once. No per-screen TTL or TTL refresh on access.
+- [x] **BUG-F4** `screen.py:106-108` - **TTL DESIGN FLAW**: All saved screens stored in SINGLE Redis key with one TTL. When TTL expires, ALL saved screens are lost at once. No per-screen TTL or TTL refresh on access. [FIXED: get_saved_screens() now refreshes index TTL on access and cleans up orphaned entries]
 - [x] **BUG-F5** `formula_service.py:135,155,180` - Saved formulas stored without TTL (no TTL passed when saving/updating/deleting)
 - [x] **BUG-F6** `cache.py:13` - Uses `KEYS *` command which is O(N) and blocks Redis server (should use SCAN iterator)
 
@@ -394,4 +394,8 @@ npm run lint
 - [x] Add POST /api/v1/company/disclosure-dates endpoint (NEW-6)
 - [x] Update TrendComparisonChart to fetch and display actual disclosure dates (NEW-6)
 
-(End of file - total 393 lines)
+### v0.7.8 - Bug Fix Release (COMPLETED)
+- [x] Fix BUG-F4: Saved screens index TTL now refreshed on access (screen.py:get_saved_screens)
+- [x] Clean up orphaned screen entries when retrieving saved screens
+
+(End of file - total 401 lines)

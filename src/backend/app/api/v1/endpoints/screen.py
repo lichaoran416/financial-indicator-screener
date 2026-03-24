@@ -125,13 +125,19 @@ async def get_saved_screens() -> List[SavedScreen]:
     Get all saved screening conditions from Redis.
     """
     index = await redis_manager.get_json(SAVED_SCREENS_INDEX_KEY) or []
+    if not index:
+        return []
     screens = []
+    valid_items = []
     for item in index:
         screen_key = f"{SCREEN_KEY_PREFIX}{item['id']}"
         screen_data = await redis_manager.get_json(screen_key)
         if screen_data:
             await redis_manager.set_json(screen_key, screen_data, ttl=settings.CACHE_TTL)
             screens.append(SavedScreen(**screen_data))
+            valid_items.append(item)
+    if valid_items:
+        await redis_manager.set_json(SAVED_SCREENS_INDEX_KEY, valid_items, ttl=settings.CACHE_TTL)
     return screens
 
 
