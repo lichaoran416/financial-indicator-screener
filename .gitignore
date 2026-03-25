@@ -9,3 +9,4 @@ dist/
 venv/
 .vite/
 logs/
+dump.rdb
