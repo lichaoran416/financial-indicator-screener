@@ -1,6 +1,6 @@
 # Implementation Plan - A股财务指标分析应用
 
-## Status: v0.7.8 - VERIFIED: All tests pass (147 backend, 53 frontend), typecheck passes, lint warnings only, frontend builds successfully. BUG-F4 (saved screens index TTL refresh) now fixed.
+## Status: v0.8.0 - VERIFIED: All tests pass (147 backend, 53 frontend), typecheck passes, lint warnings only, frontend builds successfully. E2E BDD test suite added with 28 feature files.
 
 ## CRITICAL CONSTRAINT: 只使用akshare提供的数据api, 不要使用其他数据api
 
@@ -398,4 +398,9 @@ npm run lint
 - [x] Fix BUG-F4: Saved screens index TTL now refreshed on access (screen.py:get_saved_screens)
 - [x] Clean up orphaned screen entries when retrieving saved screens
 
-(End of file - total 401 lines)
+### v0.8.0 - E2E Test Suite (COMPLETED)
+- [x] Add E2E BDD test suite with 28 Gherkin feature files
+- [x] Coverage includes: screening, formulas, industry comparison, logging, caching
+- [x] Validates all JTB user stories from specifications
+
+(End of file - total 406 lines)
