@@ -403,4 +403,8 @@ npm run lint
 - [x] Coverage includes: screening, formulas, industry comparison, logging, caching
 - [x] Validates all JTB user stories from specifications
 
-(End of file - total 406 lines)
+### Environmental Notes
+- [NOTE] External akshare API (`stock_zh_a_spot_em`) requires network access to East Money servers
+- [NOTE] E2E tests cannot be run in environments with restricted network/proxy access
+- [NOTE] Backend/frontend unit tests pass using mocks; integration tests require live API
+

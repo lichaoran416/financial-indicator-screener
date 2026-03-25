@@ -44,6 +44,44 @@ npm run typecheck
 npm run lint
 ```
 
+**E2E Testing (BDD with playwright-cli)**
+```bash
+# 1. 确保服务运行: backend (8000) + frontend (3000)
+# 2. 依次学习并测试 e2e/ 下的每个 feature 文件
+
+# 学习一个 feature 文件
+# 例如: e2e/screen_companies.feature
+
+# 使用 playwright-cli 手动执行测试步骤:
+# a) 打开浏览器并导航到前端页面
+playwright-cli open http://localhost:3000
+
+# b) 根据 feature 文件的 scenario 逐步执行操作
+#    使用 snapshot 获取页面元素引用 (e.g., e1, e2)
+playwright-cli snapshot
+
+# c) 根据 scenario 描述进行交互 (click, type, fill 等)
+playwright-cli click e1
+playwright-cli type e2 "搜索内容"
+
+# d) 验证结果是否符合预期
+# e) 如发现 bug，记录到 IMPLEMENTATION_PLAN.md 的待修改 bug 中
+
+# 3. 处理完一个 feature 文件后，更新 bug 列表，然后继续下一个
+```
+
+**E2E Bug 记录格式**
+在 IMPLEMENTATION_PLAN.md 中新增 `## E2E 测试发现的问题` 部分：
+```markdown
+## E2E 测试发现的问题
+
+- [ ] **E2E-BUG-N** `e2e/xxx.feature:行号` - 描述
+  - Feature: e2e/xxx.feature
+  - Scenario: 场景名称
+  - 实际结果: ...
+  - 预期结果: ...
+```
+
 ## Known Issues
 
 - eslint-plugin-solid latest version is 0.14.5, not 8.x - ensure package.json uses correct version
@@ -75,7 +113,8 @@ src/
     ├── models/           # Data models
     ├── services/         # Business logic
     ├── utils/            # Utilities
-    └── tests/            # Backend tests
+    ├── tests/            # Backend tests
+    └── logs/             # Backend logs (app.log)
 ```
 
 ### API Endpoints
