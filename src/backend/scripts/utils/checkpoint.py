@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 
 class CheckpointManager:
@@ -35,7 +35,7 @@ class CheckpointManager:
         if not checkpoint_path.exists():
             return None
         with open(checkpoint_path, "r", encoding="utf-8") as f:
-            return json.load(f)
+            return cast(dict[str, Any], json.load(f))
 
     def get_latest_checkpoint(self, sync_type: str) -> Optional[dict[str, Any]]:
         pattern = f"sync_{sync_type}_*.json"
@@ -44,7 +44,7 @@ class CheckpointManager:
             return None
         latest_file = max(matching_files, key=lambda p: p.stat().st_mtime)
         with open(latest_file, "r", encoding="utf-8") as f:
-            return json.load(f)
+            return cast(dict[str, Any], json.load(f))
 
     def clear_checkpoint(self, sync_type: str, date: Optional[str] = None) -> None:
         checkpoint_path = self._get_checkpoint_path(sync_type, date)

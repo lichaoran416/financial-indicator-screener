@@ -46,6 +46,10 @@ class FormulaEvaluator:
 
         if node.node_type == ASTNodeType.UNARY_OP:
             operand = self.evaluate(cast(ASTNode, node.right))
+            if not isinstance(operand, (int, float)):
+                raise FormulaEvaluatorError(
+                    f"Unary operator '-' requires numeric operand, got {type(operand)}"
+                )
             if node.operator == "-":
                 return -operand
             return operand
@@ -65,9 +69,15 @@ class FormulaEvaluator:
                 elif node.operator == "*":
                     return [lv * rv for lv, rv in zip(left_padded, right_padded)]
                 elif node.operator == "/":
-                    return [lv / rv if rv != 0 else 0.0 for lv, rv in zip(left_padded, right_padded)]
+                    return [
+                        lv / rv if rv != 0 else 0.0 for lv, rv in zip(left_padded, right_padded)
+                    ]
             elif isinstance(left_val, list):
-                scalar = right_val
+                if not isinstance(right_val, (int, float)):
+                    raise FormulaEvaluatorError(
+                        f"Binary operator '{node.operator}' requires numeric operand, got {type(right_val)}"
+                    )
+                scalar = float(right_val)
                 if node.operator == "+":
                     return [v + scalar for v in left_val]
                 elif node.operator == "-":
@@ -77,7 +87,11 @@ class FormulaEvaluator:
                 elif node.operator == "/":
                     return [v / scalar if scalar != 0 else 0.0 for v in left_val]
             elif isinstance(right_val, list):
-                scalar = left_val
+                if not isinstance(left_val, (int, float)):
+                    raise FormulaEvaluatorError(
+                        f"Binary operator '{node.operator}' requires numeric operand, got {type(left_val)}"
+                    )
+                scalar = float(left_val)
                 if node.operator == "+":
                     return [scalar + v for v in right_val]
                 elif node.operator == "-":
@@ -306,7 +320,12 @@ class FormulaEvaluator:
 
 def evaluate(ast: ASTNode, metrics_data: Optional[MetricData] = None) -> float:
     evaluator = FormulaEvaluator(metrics_data)
-    return evaluator.evaluate(ast)
+    result = evaluator.evaluate(ast)
+    if isinstance(result, list):
+        raise FormulaEvaluatorError(
+            f"evaluate() expected scalar result, got list of length {len(result)}"
+        )
+    return result
 
 
 def evaluate_time_series(ast: ASTNode, metric_values: dict[str, list[float]]) -> list[float]:

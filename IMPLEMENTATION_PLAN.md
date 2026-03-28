@@ -10,6 +10,7 @@ A stock analysis tool for A-share market that screens/ranks companies using cust
 - Working tree is clean
 - API endpoints (`/screen`, `/company/compare`, industry endpoints) now query local PostgreSQL
 - `/company/{code}` fetches PE/PB via akshare by design (real-time market cap not stored in DB)
+- **2026-03-29**: Fixed mypy type errors in `formula_evaluator.py` (unary/binary operator type narrowing); installed `pandas-stubs`
 
 ---
 
@@ -31,18 +32,18 @@ Low priority - minor discrepancies in `src/backend/app/db/models.py`:
 
 ### [TODO] Backend Lint Issues
 ```bash
-cd src/backend && source .venv/bin/activate && ruff check tests/
+cd src/backend && source .venv/bin/activate && ruff check tests/ app/
 ```
-- `tests/integration/test_formula_api.py:3,4` - `MagicMock`, `datetime` unused
-- `tests/unit/test_services/test_financial.py:2` - `AsyncMock` unused
-- `tests/unit/test_services/test_formula_service.py:2` - `AsyncMock` unused
+- All checks pass (unused imports issue was resolved before)
 
 ### [TODO] Backend Type Issues
 ```bash
-cd src/backend && source .venv/bin/activate && mypy src/backend/
+cd src/backend && source .venv/bin/activate && mypy app/
 ```
-- Missing pandas/sqlalchemy stubs
-- `Returning Any from function` in `checkpoint.py:38,47` and `main.py:45`
+- `pandas-stubs` installed (2026-03-29)
+- Remaining mypy errors are in `akshare_client.py` due to missing `akshare` library stubs (library issue, not code)
+  - Lines 49, 122, 619: `Returning Any from function` - all `akshare` API calls return untyped results
+- `scripts/sync_stock_basic.py:7` - missing akshare stubs (same library issue)
 
 ### [TODO] Documentation
 - Document new `/sync/*` endpoints
