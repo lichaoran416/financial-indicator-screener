@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
@@ -57,7 +57,7 @@ async def trigger_sync(request: SyncTriggerRequest, background_tasks: Background
             sync_type=request.sync_type,
             status="pending",
             industry_sw_three=request.industry_sw_three,
-            started_at=datetime.utcnow(),
+            started_at=datetime.now(UTC),
         )
         session.add(history)
 

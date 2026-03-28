@@ -83,7 +83,7 @@ async def get_company_info(stock_code: str) -> dict[str, Any]:
 
 @router.get("/company/{stock_code}", response_model=CompanyDetailResponse)
 async def get_company(
-    stock_code: str = Path(..., description="Stock code", example="000001"),
+    stock_code: str = Path(..., description="Stock code", examples=["000001"]),
 ) -> CompanyDetailResponse:
     cache_key = f"company:{stock_code}"
 

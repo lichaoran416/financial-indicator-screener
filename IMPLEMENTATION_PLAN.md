@@ -26,6 +26,9 @@ A stock analysis tool for A-share market that screens/ranks companies using cust
   - Previously: endpoint did not call akshare_client and returned empty `disclosure_dates`
   - Now: properly calls `akshare_client.get_disclosure_dates_dict()` to fetch real data
   - Added new method `get_disclosure_dates_dict()` to akshare_client.py for full disclosure date structure
+- **FIX (2026-03-29)**: Fixed FastAPI deprecation warnings
+  - `company.py:86`: Changed `example="000001"` to `examples=["000001"]`
+  - `sync.py:60`: Changed `datetime.utcnow()` to `datetime.now(UTC)` for timezone-aware datetime
 
 ---
 
