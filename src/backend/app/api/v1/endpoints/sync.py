@@ -13,6 +13,8 @@ from app.db.schemas import (
     SyncStatusResponse,
     SyncStatusHistorySchema,
     IndustrySyncStatusSchema,
+    LastSync,
+    LastSyncDetail,
 )
 
 router = APIRouter()
@@ -26,7 +28,7 @@ async def run_sync_task(sync_type: str, industry_sw_three: Optional[str] = None)
     elif sync_type == "financial":
         from scripts.sync_accounting_data import sync_all
 
-        await sync_all(force=True)
+        await sync_all(force=True, industry_sw_three=industry_sw_three)
     elif sync_type == "industry":
         from scripts.sync_industry_class import sync_industry_class
 
@@ -38,7 +40,7 @@ async def run_sync_task(sync_type: str, industry_sw_three: Optional[str] = None)
 
         await sync_stock_basic(force=True)
         await sync_industry_class(force=True)
-        await sync_all(force=True)
+        await sync_all(force=True, industry_sw_three=industry_sw_three)
 
 
 @router.post("/sync/trigger", response_model=SyncTriggerResponse)
@@ -73,9 +75,9 @@ async def trigger_sync(request: SyncTriggerRequest, background_tasks: Background
 @router.get("/sync/status", response_model=SyncStatusResponse)
 async def get_sync_status(industry_sw_three: Optional[str] = None):
     async with db_manager.session() as session:
-        stmt = select(SyncStatusHistory).order_by(desc(SyncStatusHistory.started_at)).limit(50)
+        stmt = select(SyncStatusHistory).order_by(desc(SyncStatusHistory.started_at))
         result = await session.execute(stmt)
-        tasks = result.scalars().all()
+        all_tasks = result.scalars().all()
 
         stmt_industry = select(IndustrySyncStatus)
         if industry_sw_three:
@@ -85,8 +87,33 @@ async def get_sync_status(industry_sw_three: Optional[str] = None):
         result_industry = await session.execute(stmt_industry)
         industries = result_industry.scalars().all()
 
-    return SyncStatusResponse(
-        tasks=[SyncStatusHistorySchema.model_validate(t) for t in tasks],
-        industries=[IndustrySyncStatusSchema.model_validate(i) for i in industries],
-        total_tasks=len(tasks),
-    )
+    last_sync = LastSync()
+
+    for sync_type in ["financial", "basic", "industry"]:
+        type_tasks = [t for t in all_tasks if t.sync_type == sync_type]
+        if not type_tasks:
+            continue
+
+        latest_task = type_tasks[0]
+
+        industry_updates: dict[str, datetime] = {}
+        for ind_task in type_tasks:
+            if ind_task.industry_sw_three and ind_task.finished_at:
+                industry_updates[ind_task.industry_sw_three] = ind_task.finished_at
+
+        detail = LastSyncDetail(
+            status=latest_task.status,
+            records_synced=latest_task.processed_count,
+            last_updated=latest_task.finished_at,
+            current_code=None,
+            last_updated_by_industry=industry_updates if industry_updates else None,
+        )
+
+        if sync_type == "financial":
+            last_sync.financial = detail
+        elif sync_type == "basic":
+            last_sync.basic = detail
+        elif sync_type == "industry":
+            last_sync.industry = detail
+
+    return SyncStatusResponse(last_sync=last_sync)

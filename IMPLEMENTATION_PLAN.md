@@ -130,20 +130,29 @@ Frontend has `src/frontend/src/lib/` with some utilities, but project root `src/
 
 ## Priority 3: Sync Endpoint Issues
 
-### [ISSUE] /sync/trigger ignores industry_sw_three parameter
-**Location**: `src/backend/app/api/v1/endpoints/sync.py:21-41`
+### [FIXED] /sync/trigger ignores industry_sw_three parameter
+**Location**: `src/backend/app/api/v1/endpoints/sync.py:21-41` + `scripts/sync_accounting_data.py`
 
-**Problem**: `industry_sw_three` parameter is accepted but never passed to `sync_all()`. The `run_sync_task()` function receives it but `sync_accounting_data.sync_all()` doesn't accept industry filter.
+**Status**: FIXED 2026-03-29
 
-### [ISSUE] /sync/status response schema mismatch
+**Problem**: `industry_sw_three` parameter was accepted but never passed to `sync_all()`. The `run_sync_task()` function received it but `sync_accounting_data.sync_all()` didn't accept industry filter.
+
+**Changes applied**:
+- Modified `sync_all()` in `scripts/sync_accounting_data.py` to accept `industry_sw_three` parameter
+- Added `StockIndustry` import and join query to filter stocks by industry when parameter is provided
+- Updated `run_sync_task()` in `sync.py` to pass `industry_sw_three` to `sync_all()`
+
+### [FIXED] /sync/status response schema mismatch
 **Location**: `src/backend/app/api/v1/endpoints/sync.py` + `schemas.py`
 
-**Current**: Returns `{tasks: [...], industries: [...], total_tasks: N}` (flat list)
-**Spec requires**: Returns `{last_sync: {financial: {...}, basic: {...}, industry: {...}}}` (nested by sync_type)
+**Status**: FIXED 2026-03-29
 
-**Changes needed**:
-- Restructure response to group by sync_type
-- Add `current_code` and `last_updated_by_industry` fields
+**Problem**: Response returned flat list structure instead of nested `last_sync` object.
+
+**Changes applied**:
+- Added `LastSyncDetail` and `LastSync` Pydantic schemas
+- Updated `SyncStatusResponse` to use `last_sync: LastSync` field
+- Rewrote `get_sync_status()` to build nested response grouped by sync_type (financial, basic, industry)
 
 ---
 
@@ -251,8 +260,8 @@ cd src/backend && source .venv/bin/activate && mypy src/backend/
 - [x] **FIX: Variable shadowing issues causing mypy errors - FIXED 2026-03-29** (company.py, metrics.py, sync_accounting_data.py)
 
 ### Sync Endpoints
-- [ ] **FIX: /sync/status response schema must return nested last_sync object**
-- [ ] **FIX: /sync/trigger must pass industry_sw_three to sync_all()**
+- [x] **FIX: /sync/status response schema must return nested last_sync object** - FIXED 2026-03-29
+- [x] **FIX: /sync/trigger must pass industry_sw_three to sync_all()** - FIXED 2026-03-29
 
 ### Frontend
 - [x] SyncManagementPage implemented

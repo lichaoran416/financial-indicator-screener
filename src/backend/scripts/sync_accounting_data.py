@@ -10,6 +10,7 @@ from sqlalchemy import select
 from app.db.database import db_manager
 from app.db.models import (
     StockBasic,
+    StockIndustry,
     AccountingItem,
     AccountingData,
 )
@@ -194,13 +195,20 @@ async def sync_accounting_data(code: str, force: bool = False) -> SyncResult:
     return result
 
 
-async def sync_all(force: bool = False) -> list[SyncResult]:
+async def sync_all(
+    force: bool = False, industry_sw_three: Optional[str] = None
+) -> list[SyncResult]:
     results = []
 
     await db_manager.init("postgresql+asyncpg://stock_user:stock_pass@localhost:5432/stock_db")
 
     async with db_manager.session() as session:
-        query_result = await session.execute(select(StockBasic.code).where(StockBasic.is_active))
+        query = select(StockBasic.code).where(StockBasic.is_active)
+        if industry_sw_three:
+            query = query.join(StockIndustry).where(
+                StockIndustry.industry_sw_three == industry_sw_three
+            )
+        query_result = await session.execute(query)
         codes = [row[0] for row in query_result.fetchall()]
 
     logger.info(f"Starting accounting data sync for {len(codes)} stocks")

@@ -89,10 +89,22 @@ class SyncTriggerResponse(BaseModel):
     message: Optional[str] = None
 
 
+class LastSyncDetail(BaseModel):
+    status: Optional[str] = None
+    records_synced: int = 0
+    last_updated: Optional[datetime] = None
+    current_code: Optional[str] = None
+    last_updated_by_industry: Optional[dict[str, datetime]] = None
+
+
+class LastSync(BaseModel):
+    financial: Optional[LastSyncDetail] = None
+    basic: Optional[LastSyncDetail] = None
+    industry: Optional[LastSyncDetail] = None
+
+
 class SyncStatusResponse(BaseModel):
-    tasks: list[SyncStatusHistorySchema]
-    industries: list[IndustrySyncStatusSchema]
-    total_tasks: int
+    last_sync: LastSync
 
 
 class AccountingItemListResponse(BaseModel):
