@@ -1,410 +1,289 @@
-# Implementation Plan - A股财务指标分析应用
+# Implementation Plan
 
-## Status: v0.8.0 - VERIFIED: All tests pass (147 backend, 53 frontend), typecheck passes, lint warnings only, frontend builds successfully. E2E BDD test suite added with 28 feature files.
+## Summary
 
-## CRITICAL CONSTRAINT: 只使用akshare提供的数据api, 不要使用其他数据api
+This application aims to be a stock analysis tool for A-share market that helps investors screen and rank listed companies using custom financial metrics formulas with multi-timeframe conditions, featuring industry comparison and data visualization capabilities.
 
----
+**Current State**: The application has a working frontend and backend infrastructure. Sync scripts and DB models are implemented, BUT the backend API endpoints call akshare directly at runtime instead of querying the local PostgreSQL database - this is a critical architectural violation per specs/02_data_source.md.
 
-## Priority Order (Implementation Sequence)
-
-### Critical Bugs (Must Fix)
-
-- [x] **BUG-F1** `formula_evaluator.py:118-123` - Year range uses list index instead of year value. `ROE[2020:2024]` accesses indices 2020-2024 instead of years 2020-2024
-- [x] **BUG-F2** `formula_parser.py:162-166` - Checks `TokenType.IDENTIFIER` instead of `TokenType.COLON` for range syntax
-- [x] **BUG-F3** `formula_evaluator.py:238-242` - Division by zero in `evaluate_list()` silently returns 0.0 instead of raising error
-- [x] **BUG-F4** `screen.py:106-108` - **TTL DESIGN FLAW**: All saved screens stored in SINGLE Redis key with one TTL. When TTL expires, ALL saved screens are lost at once. No per-screen TTL or TTL refresh on access. [FIXED: get_saved_screens() now refreshes index TTL on access and cleans up orphaned entries]
-- [x] **BUG-F5** `formula_service.py:135,155,180` - Saved formulas stored without TTL (no TTL passed when saving/updating/deleting)
-- [x] **BUG-F6** `cache.py:13` - Uses `KEYS *` command which is O(N) and blocks Redis server (should use SCAN iterator)
-
-### High Priority Bugs
-
-- [x] **BUG-H1** `financial.py:389-392` - profit_only filter uses `metrics.get("net_profit") or metrics.get("roe", 0)` which falls back to ROE when net_profit is exactly 0 (breakeven)
-- [x] **BUG-H2** `financial.py:428-433` - require_complete_data uses `min(num_conditions, 3)` threshold instead of requiring ALL condition metrics
-- [x] **BUG-H3** `financial.py:431` - ~~metric name mismatch: `gross_margin`~~ **VERIFIED NOT A BUG**: `gross_margin` is consistent throughout
-- [x] **BUG-H4** `screen.py:122-130` - ~~Delete returns `{"deleted": True}` even when screen_id wasn't found~~ **VERIFIED NOT A BUG**: Logic `len(existing) > len(updated)` correctly returns False when not found
-- [x] **BUG-H5** `company.py:198-205,292-293` - Silent exception swallowing in peer comparison AND trend endpoint with `continue`, no logging
-- [x] **BUG-H6** `akshare_client.py` - Uses different data sources: `get_company_info()` uses `stock_individual_info_ths`, `get_market_capital()` and `get_industry_peers()` use `stock_individual_info_em` [FIXED: Changed get_company_info() to use stock_individual_info_em for consistency with other functions]
-- [x] **BUG-H7** `formula_service.py` has `update_formula()` method but NO corresponding PUT API endpoint
-- [x] **BUG-H8** `screen.py:73-88` - Secondary sorting (`sort_by_2`, `order_2`) NOT passed to `get_companies_from_financial_service()`. Secondary sorting is defined in schema and service supports it, but endpoint never passes these parameters.
-- [x] **BUG-H9** `financial.py:406,412` - Sort key uses `or 0` causing missing data to sort to TOP in descending order (0 is largest)
-
-### High Priority Gaps
-
-- [x] **GAP-F1** Type inconsistency - Three different Condition definitions in `api/screen.ts`, `stores/screeningStore.ts`, `lib/types.ts` with mismatched fields [FIXED: Unified Condition type across all files, now includes metric?, formula?, value2?, period types]
-- [x] **GAP-F2** `OperatorSelector.tsx:43` - ~~Duplicate import `from 'solid-js'`~~ **VERIFIED NOT A BUG**: Only one import exists
-- [x] **GAP-F3** `ConditionTree.tsx:193` - Shows "Unknown metric" when formula is used instead of metric (should check `condition.formula` as fallback) [FIXED]
-- [x] **GAP-F4** `ExportButton.tsx:13-19` - CSV export only includes company info (Code, Name, Industry, Status, Risk Flag), does NOT include calculated metrics or available_years [FIXED]
-- [x] **GAP-F5** `TreeMap.tsx:90-142` - Uses simple slice-and-dice algorithm instead of proper squarified treemap [FIXED: Implemented squarified treemap algorithm with proper aspect ratios]
-- [x] **GAP-F6** `TrendComparisonChart.tsx:155-161` - Time range selector is cosmetic only; always fetches 5 years regardless of selection [FIXED: Now uses yearsMap[timeRange()] to fetch correct years]
-- [x] **GAP-F7** `FormulaEditor.tsx:204-212` - Shows raw formula preview, not actual calculated result. `evaluateFormula` API exists but is never called [FIXED: FormulaEditor now calls evaluateFormula with sample company metrics and displays the calculated result]
-- [x] **GAP-F8** `Pagination.tsx` - No direct page number input (only Previous/Next/ellipsis buttons) [FIXED: Added page number input field with validation and Go button]
-- [x] **GAP-F9** `metrics.py:7-17` - Hardcoded English metric names instead of Chinese names from `FinancialService.METRIC_DEFINITIONS` (FIXED: Now uses Chinese names from METRIC_DEFINITIONS)
-
-### Documentation Gaps
-
-- [x] specs/05_backend.md - Missing industry endpoints (csrc, sw-one, sw-three, ths) [FIXED: Added all industry endpoints, company compare/trend, formula CRUD, cache refresh]
-- [x] specs/03_technical_architecture.md - References `src/lib` but it doesn't exist (should be `src/frontend/src/lib`) [FIXED: Corrected paths]
-- [x] specs/03_technical_architecture.md - Missing formula engine section [FIXED: Added formula engine architecture]
-- [x] specs/09_industry_comparison.md - THS industry classification is implemented but not documented [FIXED: Documented THS classification]
-- [x] Data source spec says `stock_financial_report_sina` but code uses `stock_profit_sheet_by_report_em` for income data [FIXED: Updated specs/02_data_source.md to reflect actual implementation]
-- [x] specs/05_backend.md - Missing POST /company/disclosure-dates endpoint and logic parameter for screen [FIXED: Documented disclosure-dates endpoint and logic parameter]
-- [x] specs/02_data_source.md - Missing get_disclosure_date(), get_market_capital(), get_financial_indicator() [FIXED: Added these functions to data source spec]
-
-### New Issues Found (Requiring Investigation)
-
-- [x] **NEW-1** `log_data_acquisition()` defined in `logging.py:234-262` but NOT used anywhere in akshare_client.py [FIXED: Integrated into all akshare_client data acquisition methods]
-- [x] **NEW-2** `track_duration` decorator defined in `logging.py:265-290` but no functions use `@track_duration` [FIXED: Applied to slow functions in akshare_client.py]
-- [x] **NEW-3** `formula_service.py` has race condition potential - non-atomic read-modify-write pattern for save/update/delete [FIXED: Implemented atomic_update_json using WATCH/MULTI/EXEC pattern]
-- [x] **NEW-4** CACHE_TTL duplicated in `company.py:24` and `financial.py:10` (both hardcode 86400 instead of using `settings.CACHE_TTL`) [FIXED: Replaced with settings.CACHE_TTL in both files]
-- [x] **NEW-5** Export limited to current page only - cannot export all pages [FIXED: ExportButton now fetches all pages (up to 100 pages) before exporting]
-- [x] **NEW-6** `TrendComparisonChart.tsx:73-78` - Financial report date annotations are hardcoded placeholders (Q1 on 04-30, Q2 on 08-31) not actual company-specific release dates [FIXED: Added get_disclosure_date() in akshare_client, new /company/disclosure-dates API endpoint, and updated TrendComparisonChart to fetch and display actual disclosure dates from cninfo]
-- [x] **NEW-7** THS industry classification implemented but not documented in specs/09_industry_comparison.md [FIXED: Documented in specs]
-- [x] **NEW-8** `akshare_client.py` - Data source discrepancy: spec says `stock_financial_report_sina` but code uses `stock_profit_sheet_by_report_em` for income data [FIXED: Updated specs/02_data_source.md]
-- [x] **NEW-9** Frontend npm dependencies may not be fully installed (eslint not found, TypeScript definition files missing) [FIXED: Dependencies installed, eslint and typecheck pass]
-- [x] **NEW-10** Backend mypy shows errors - missing type stubs for pandas and akshare [CANNOT FIX: pip not available in environment]
-- [x] **NEW-11** `formula_evaluator.py:92-138` - Time series with JSON string keys (from API) couldn't be evaluated because evaluator expected integer keys [FIXED: Updated get_time_series_value to try both integer and string keys when looking up year data]
+**Verification Status**: All critical issues below have been verified via code inspection as of 2026-03-29.
 
 ---
 
-## Verified Complete Items
+## Priority 1: Critical Architectural Violations (Must Fix)
 
-### Core Functionality
-- [x] JTB-001 Multi-condition filtering with formulas - works (BUG-F1, BUG-F2 fixed)
-- [x] JTB-002 Sorting by metrics - works (BUG-H9 fixed)
-- [x] JTB-003 Company detail view - modal exists with metrics display
-- [x] JTB-004 Save screen button - works (button added to UI)
-- [x] JTB-005 Formula engine basic operators (+, -, *, /) - works (BUG-F1, BUG-F2, BUG-F3 fixed)
-- [x] JTB-005 Built-in functions (AVG, SUM, MIN, MAX, STD) - works
-- [x] JTB-005 Time series syntax (e.g., `ROE[2020:2024]`) - works (BUG-F1 and BUG-F2 fixed)
-- [x] JTB-006 Formula evaluation in screening - works (when formula is valid)
-- [x] JTB-008 profit_only filter - works (BUG-H1 fixed)
+### [CRITICAL] Refactor API Endpoints to Query Local PostgreSQL
+**Why**: Specs/02_data_source.md explicitly states "API endpoints 不直接调用 akshare，而是查询本地数据库". Current implementation calls akshare directly in runtime, defeating the entire caching architecture and causing 1.5+ hour query times.
 
-### Edge Cases
-- [x] JTB-007 include_suspended flag works
-- [x] JTB-009 include_st flag works
-- [x] JTB-010 require_complete_data flag works (BUG-H2 fixed)
+**Files to modify**:
 
-### JTB-010 Metrics Display
-- [x] JTB-010 Missing data displayed as "N/A" - TableRow now shows metrics with N/A for missing values
-- [x] JTB-010 available_years shown to users - displayed in results table
-- [x] JTB-010 Loss-making companies (negative metrics) shown in red in frontend
+1. **`src/backend/app/services/financial.py`** (VERIFIED - calls akshare directly)
+   - `get_company_list()` calls `akshare_client.get_stock_list()` (line 83)
+   - `get_company_metrics()` calls `akshare_client.get_financial_data()` and `get_financial_indicator()` (lines 107-109, 150)
+   - `screen_companies()` iterates over company list and calls akshare per company (lines 344-397)
+   - NO database queries to stock_basic, accounting_data, or stock_industry tables exist
 
-### Industry Comparison
-- [x] JTB-011 Industry filtering works (industry/exclude_industry/industries)
-- [x] JTB-012 PeerComparison component with radar chart
-- [x] JTB-013 Industry selection UI
+2. **`src/backend/app/api/v1/endpoints/company.py`** (VERIFIED - calls akshare directly)
+   - `get_company_info()` function (lines 38-66) uses `ak.stock_individual_info_em()` and `ak.stock_financial_analysis_indicator()` directly
+   - `get_company()` calls `get_company_info()` (line 79)
+   - `compare_with_peers()` calls `akshare_client.get_company_info()` and `get_industry_peers()` (lines 192, 195)
+   - `get_trend_comparison()` calls `akshare_client.get_company_info()` (line 280)
+   - `get_disclosure_dates()` calls `akshare_client.get_disclosure_date()` (line 322)
+   - Industry endpoints call `akshare_client` methods (lines 114, 133, 152, 171)
 
-### Visualization
-- [x] JTB-014 TreeMap component (now uses proper squarified treemap algorithm - GAP-F5 FIXED)
-- [x] JTB-015 TrendComparisonChart with dual Y-axis
-- [x] JTB-016 ConditionTree component
-- [x] JTB-016 IndustryHeatmap component
-- [x] JTB-016 ValueSlider component (integrated into ValueInput)
+3. **`src/backend/app/api/v1/endpoints/screen.py`**
+   - Current: `get_companies_from_financial_service()` delegates to `financial_service.screen_companies()` which calls akshare
+   - Fix: After refactoring financial.py, this will automatically use local DB (verified: screen.py does NOT call akshare directly, only delegates to financial.py)
 
-### Data Layer
-- [x] akshare integration (3 key functions: stock_financial_analysis_indicator, stock_financial_report_sina, stock_zh_a_hist)
-- [x] Redis caching exists
-- [x] Cache refresh endpoint
+### [CRITICAL] Fix /metrics Response Schema
+**Location**: `src/backend/app/api/v1/endpoints/metrics.py` + `src/backend/app/models/schemas.py`
 
-### Formula Engine Components
-- [x] Lexer implementation
-- [x] Parser implementation
-- [x] Evaluator implementation
-- [x] Formula validation service
+**Current**: Returns `{"metrics": [{"id": "...", "name": "...", "category": "..."}]}`
 
-### Logging Infrastructure (JTB-101 through JTB-108)
-- [x] JTB-101 API request logging - with method, path, params, duration
-- [x] JTB-102 Error logging - with error type, stack trace, request context
-- [x] JTB-103 Data acquisition logging - now integrated into akshare_client (NEW-1 FIXED)
-- [x] JTB-104 Log levels - DEBUG/INFO/WARNING/ERROR/CRITICAL
-- [x] JTB-105 Structured JSON log output
-- [x] JTB-106 Request ID tracking - UUIDv4贯穿请求生命周期
-- [x] JTB-107 Sensitive data filtering - masks password/token/secret/etc.
-- [x] JTB-108 Slow request alerts - threshold 1000ms
+**Spec requires** (specs/05_backend.md lines 116-127):
+```json
+{
+  "derived_metrics": [
+    {"id": "roe", "name": "净资产收益率", "category": "profitability", "formula": "净利润 / 净资产"}
+  ],
+  "raw_items": [
+    {"name": "营业收入", "report_type": "profit", "category": "revenue"}
+  ]
+}
+```
 
-### API Endpoints (Backend has but not all documented in specs)
-- [x] GET /api/v1/industry/csrc - Industry classification
-- [x] GET /api/v1/industry/sw-one - Shenwan L1
-- [x] GET /api/v1/industry/sw-three - Shenwan L3
-- [x] GET /api/v1/industry/ths - THS industry
-- [x] POST /api/v1/company/compare - Peer comparison
-- [x] POST /api/v1/company/trend - Trend comparison
-- [x] POST /api/v1/company/disclosure-dates - Get actual financial report disclosure dates per company (NEW-6)
-- [x] POST /api/v1/formula/validate - Formula validation
-- [x] POST /api/v1/formula/evaluate - Formula evaluation
-- [x] POST /api/v1/formula/save - Save formula
-- [x] GET /api/v1/formula/saved - Get saved formulas
-- [x] PUT /api/v1/formula/{formula_id} - Update formula (BUG-H7 fixed)
-- [x] DELETE /api/v1/formula/{formula_id} - Delete formula
-- [x] DELETE /api/v1/screen/saved/{screen_id} - Delete saved screen
+**Changes needed**:
+- Add `RawAccountingItem` schema with `name`, `report_type`, `category`
+- Add `MetricsListResponse` with `derived_metrics` and `raw_items` fields
+- Modify `get_metrics()` to query `accounting_items` table for raw_items
+- Add `formula` field to derived metrics (exists in METRIC_DEFINITIONS but not returned)
 
-### Industry Classification
-- [x] CSRC 3-level hierarchy (门类/大类/中类) via stock_industry_category_cninfo
-- [x] THS industry classification via get_industry_ths()
-- [x] Shenwan industry classification (SW) via stock_industry_sw()
+### [CRITICAL] Fix /company/disclosure-dates Response Schema
+**Location**: `src/backend/app/api/v1/endpoints/company.py:312-329` + `schemas.py:209-225`
 
-### Export Functionality
-- [x] JTB-017 CSV export of screening results - ExportButton exports all pages (up to 100 pages/10000 companies) with calculated metrics and available_years
+**Current**: Returns flat `disclosure_dates` list with single `disclosure_date` field per company
+
+**Spec requires** (specs/05_backend.md lines 93-110): Nested structure with `companies[].disclosure_dates.annual{year{report_date, disclosure_date}}` and `quarterly`
+
+**Changes needed**:
+- Add proper nested schemas for `AnnualDisclosure` and `QuarterlyDisclosure`
+- Modify `CompanyDisclosureDate` and `DisclosureDateResponse`
+- Add quarterly disclosure support (currently only annual)
+
+### [FIXED] Formula Engine Cumulative Calculation Bug
+**Location**: `src/backend/app/utils/formula_evaluator.py` - evaluate() BINARY_OP case
+
+**Bug**: Binary operations in `evaluate()` didn't handle list operands properly. When one or both operands were lists, operations like `list / list` would fail.
+
+**Fix applied**: Modified BINARY_OP case to handle:
+1. `list + list`, `list - list`, `list * list`, `list / list` - element-wise operations
+2. `scalar + list`, `scalar - list`, `scalar * list`, `scalar / list` - scalar broadcast
+3. `list + scalar`, `list - scalar`, `list * scalar`, `list / scalar` - scalar broadcast (reversed)
+4. `scalar OP scalar` - normal operations
+
+**Impact**: Cumulative ratio calculations like `SUM(资本开支[2014:2023]) / SUM(净利润[2014:2023])` now work correctly.
 
 ---
 
-## Critical Bugs Detail
+## Priority 2: Frontend Gaps
 
-### BUG-F1: Year Range Index Bug
-**Location**: `src/backend/app/utils/formula_evaluator.py:118-123`
-```python
-if isinstance(value, list):
-    if len(value) == 0:
-        raise FormulaEvaluatorError(f"Empty list for metric: {metric_name}")
-    if isinstance(year, tuple):
-        start_year, end_year = year
-        return value[start_year : end_year+1]  # BUG: uses list indices, not year values
-```
-**Issue**: When evaluating `ROE[2020:2024]`, if ROE has data for years [2019,2020,2021,2022,2023], this would access indices 2020-2024 which may not exist or be wrong years. The dict handler correctly iterates through years as keys, but the list handler incorrectly uses year values as indices.
+### [TODO] Missing API Client Functions (VERIFIED MISSING)
+**Location**: `src/frontend/src/api/`
 
-### BUG-F2: Wrong Token Type Check
-**Location**: `src/backend/app/utils/formula_parser.py:162-166`
-```python
-if (
-    self.current_token is not None
-    and self.current_token.type == TokenType.IDENTIFIER  # BUG: should be COLON
-    and self.current_token.value == ":"
-):
-```
-**Issue**: Should check `TokenType.COLON` instead. Currently works only because lexer allows `:` in identifiers.
+| Function | File | Status |
+|----------|------|--------|
+| `refreshCache()` | `screen.ts` | MISSING - need POST /cache/refresh |
+| `getCompanyTrend(codes, metrics, period, years)` | `company.ts` | MISSING - need POST /company/trend |
+| `getTHSIndustries()` | `company.ts` | MISSING - need GET /industry/ths |
+| `getAccountingItems(report_type?)` | `accounting.ts` | MISSING FILE |
+| `updateFormula(id, data)` | `formula.ts` | MISSING - backend has PUT /formula/{id} |
 
-### BUG-F3: Silent Division by Zero
-**Location**: `src/backend/app/utils/formula_evaluator.py:238-242`
-```python
-elif node.operator == "/":
-    if right_val == 0:
-        results.append(0.0)  # BUG: silently returns 0.0
-    else:
-        results.append(left_val / right_val)
-```
-**Issue**: Should raise an error or return NaN, not silently return 0.0 which can corrupt calculations. Inconsistent with single-value division which properly raises an error.
+### [TODO] PeerComparison THS Industry Support (VERIFIED MISSING)
+**Location**: `src/frontend/src/components/comparison/PeerComparison.tsx`
 
-### BUG-F4: TTL Design Flaw for Saved Screens
-**Location**: `src/backend/app/api/v1/endpoints/screen.py:106-108`
-**Issue**: All saved screens are stored in a SINGLE Redis key with one TTL. When TTL expires, ALL saved screens are lost at once. No per-screen TTL or TTL refresh on access.
+- Add `'ths'` to `IndustryType` union in `types.ts` (currently only `csrc | sw1 | sw3`)
+- Add `ths: 'THS行业'` to `industryTypeLabels` object
+- Import and call `getTHSIndustries()` API function
 
-### BUG-F5: Saved Formulas Stored Without TTL
-**Location**: `src/backend/app/services/formula_service.py:135,155,180`
-**Issue**: `save_formula`, `delete_formula`, `update_formula` all do NOT pass TTL to Redis set_json. Contrast with screen.py which correctly uses `settings.CACHE_TTL`.
+### [TODO] stores/syncStore.ts (VERIFIED MISSING)
+**Location**: `src/frontend/src/stores/syncStore.ts`
 
-### BUG-F6: Uses KEYS * Command
-**Location**: `src/backend/app/api/v1/endpoints/cache.py:13`
-**Issue**: Uses `keys("*")` which is O(N) and blocks Redis server. Should use SCAN iterator instead.
+- Create Zustand store for sync state management
+- Currently SyncManagementPage uses local state only
+
+### [TODO] src/lib/ Shared Utilities (VERIFIED EMPTY)
+**Location**: `src/lib/` (project root - currently empty)
+
+Frontend has `src/frontend/src/lib/` with some utilities, but project root `src/lib/` per specs/03_technical_architecture.md should contain:
+- `src/lib/types.ts` - Cross-app TypeScript types
+- `src/lib/formatters.ts` - Shared formatting utilities
+- `src/lib/api.ts` - Shared API client configuration
 
 ---
 
-## High Priority Bugs Detail
+## Priority 3: Sync Endpoint Issues
 
-### BUG-H1: profit_only False Positive
-**Location**: `src/backend/app/services/financial.py:389-392`
-```python
-net_profit = metrics.get("net_profit") or metrics.get("roe", 0)
-if net_profit is None or net_profit <= 0:
-    continue
-```
-**Issue**: When net_profit is exactly 0 (breakeven), the Python `or` treats 0 as falsy and falls back to ROE. A company with positive ROE but zero net profit would incorrectly pass the filter.
+### [ISSUE] /sync/trigger ignores industry_sw_three parameter
+**Location**: `src/backend/app/api/v1/endpoints/sync.py:21-41`
 
-### BUG-H2: require_complete_data Weak Threshold
-**Location**: `src/backend/app/services/financial.py:428-433`
-```python
-def _has_complete_metrics(self, metrics: dict[str, Any], num_conditions: int) -> bool:
-    required_metrics = ["roe", "roi", "gross_margin", "net_profit_growth", "revenue_growth"]
-    present_count = sum(1 for m in required_metrics if metrics.get(m) is not None)
-    return present_count >= min(num_conditions, 3)  # BUG: caps at 3
-```
-**Issue**: Should require all condition metrics to be present, not just min(3, num_conditions).
+**Problem**: `industry_sw_three` parameter is accepted but never passed to `sync_all()`. The `run_sync_task()` function receives it but `sync_accounting_data.sync_all()` doesn't accept industry filter.
 
-### BUG-H5: Silent Exception Swallowing
-**Location**: `src/backend/app/api/v1/endpoints/company.py:198-205,292-293`
-```python
-for peer_code in peer_codes[:20]:
-    try:
-        peer_metric = await financial_service.get_company_metrics(peer_code, period="annual", years=5)
-        peer_metrics_list.append(peer_metric)
-    except Exception:
-        continue  # BUG: silently swallows all exceptions
-```
-**Issue**: Peer comparison AND trend endpoint silently skip companies on any error with no logging, making debugging difficult.
+### [ISSUE] /sync/status response schema mismatch
+**Location**: `src/backend/app/api/v1/endpoints/sync.py` + `schemas.py`
 
-### BUG-H6: Inconsistent Data Sources
-**Location**: `src/backend/app/utils/akshare_client.py`
-- `get_company_info()` (line 92) uses `stock_individual_info_ths`
-- `get_market_capital()` (line 185) uses `stock_individual_info_em`
-- `get_industry_peers()` (line 298) uses `stock_individual_info_em`
+**Current**: Returns `{tasks: [...], industries: [...], total_tasks: N}` (flat list)
+**Spec requires**: Returns `{last_sync: {financial: {...}, basic: {...}, industry: {...}}}` (nested by sync_type)
 
-**Issue**: Different data sources may return different field names and values for the same company.
-
-### BUG-H7: Missing Update API Endpoint
-**Location**: `src/backend/app/services/formula_service.py:158-184` has `update_formula()` but `src/backend/app/api/v1/endpoints/formula.py` has no PUT endpoint.
-
-### BUG-H8: Secondary Sorting Never Works
-**Location**: `src/backend/app/api/v1/endpoints/screen.py:73-88`
-**Issue**: `sort_by_2` and `order_2` are NOT passed to `get_companies_from_financial_service()`. Secondary sorting is defined in schema and service supports it, but endpoint never passes these parameters.
-
-### BUG-H9: Sort Key Causes Missing Data to Sort to Top
-**Location**: `src/backend/app/services/financial.py:406,412`
-```python
-key=lambda x: x.get("metrics", {}).get(sort_by) or 0
-```
-**Issue**: For descending order, companies with missing metrics sort to TOP because 0 is the largest value in descending order.
+**Changes needed**:
+- Restructure response to group by sync_type
+- Add `current_code` and `last_updated_by_industry` fields
 
 ---
 
-## High Priority Gaps Detail
+## Priority 4: Database Model Minor Issues
 
-### GAP-F1: Type Inconsistencies
-**Locations**:
-- `src/frontend/src/api/screen.ts:6-14` - Condition has `metric?`, `formula?`, `value2?`
-- `src/frontend/src/stores/screeningStore.ts:6-12` - Condition has `metric` (required), NO `formula`, NO `value2`
-- `src/frontend/src/lib/types.ts:14-20` - Condition has `metric` (required), NO `formula`, NO `value2`, `period?: string`
+### Minor discrepancies in `src/backend/app/db/models.py`:
 
-### GAP-F3: ConditionTree Shows "Unknown metric" for Formulas
-**Location**: `src/frontend/src/components/condition/ConditionTree.tsx:193`
-**Issue**: Should check `condition.formula` as fallback like ResultsTable.tsx does with `cond.metric || cond.formula`.
-**Status**: [x] FIXED - Changed `condition.metric || 'Unknown metric'` to `condition.metric || condition.formula || 'Unknown metric'`
+| Table | Issue |
+|-------|-------|
+| `accounting_items` | Uses `String(50)` instead of `String(20)` for code; unique constraint only on `code` instead of `(code, report_type)` |
+| `accounting_data` | Uses `Float` instead of `DECIMAL(20,4)` for `item_value`; missing composite unique constraint |
+| `sync_status_history` | Uses `Text` instead of `TEXT[]` array for `failed_codes` |
 
-### GAP-F4: CSV Export Does NOT Include Calculated Metrics
-**Location**: `src/frontend/src/components/results/ExportButton.tsx:13-19`
-**Issue**: Only exports Code, Name, Industry, Status, Risk Flag. Does NOT export `metrics` or `available_years` from CompanyInfo.
-**Status**: [x] FIXED - Updated ExportButton to accept conditions prop and export available_years and metrics data matching what ResultsTable displays. Added CSV escaping for values with commas/quotes.
-
-### GAP-F5: Non-Squarified TreeMap
-**Location**: `src/frontend/src/components/visualization/TreeMap.tsx:90-142`
-**Issue**: Uses simple horizontal/vertical strip alternation (slice-and-dice) instead of proper squarified algorithm for better aspect ratios.
-**Status**: [x] FIXED - Implemented proper squarified treemap algorithm with `squarify()`, `layoutRow()`, and `getWorstAspectRatio()` functions. The new algorithm creates rectangles with better aspect ratios by iteratively building rows and choosing the best layout.
-
-### GAP-F6: Cosmetic Time Range Selector
-**Location**: `src/frontend/src/components/visualization/TrendComparisonChart.tsx:155-161`
-```typescript
-const response = await apiClient.post('/company/trend', {
-  codes,
-  metrics: [leftMetric(), rightMetric()],
-  period: 'annual',
-  years: 5,  // HARDCODED - ignores timeRange()
-});
-```
-**Issue**: Time range selector (`1Y`, `3Y`, `5Y`, `ALL`) only filters display, not what is fetched.
-
-### GAP-F7: FormulaEditor Shows Preview Not Calculated Result
-**Location**: `src/frontend/src/components/condition/FormulaEditor.tsx:204-212`
-**Issue**: Shows raw formula text, not actual computed result. `evaluateFormula` API exists but is never called in frontend.
-**Status**: [x] FIXED - FormulaEditor now imports `evaluateFormula`, accepts `companies` prop, calls evaluateFormula after successful validation using the first company's metrics, and displays the calculated result in the preview section. Also updated ConditionRow to pass companies to FormulaEditor.
+These are low priority but should be fixed for schema compliance.
 
 ---
 
-## Test Coverage Gaps
+## Priority 5: Testing & Validation
 
-| Gap Item | Status | Notes |
-|----------|--------|-------|
-| Time series parsing (`ROE[2023]`, `ROE[2020:2024]`) | TESTED | Added `TestTimeSeriesParsing` class with 3 tests |
-| Time series evaluation | TESTED | Added `TestTimeSeriesEvaluation` class with 2 tests |
-| Multiple function arguments (`AVG(roe, roi)`) | TESTED | Added `TestMultipleFunctionArguments` class with 4 tests |
-| Division by zero in `evaluate_list()` | TESTED | Added `test_division_by_zero_in_list_evaluation` test |
-| Complete integration flow | TESTED | Added `TestFormulaAPIIntegration` with 13 tests covering all formula CRUD operations |
-| Formula update operation | TESTED | Added `test_update_formula_endpoint` and related tests in integration tests |
-| Comparison operators in formula context | NOT TESTED | Only tested in condition filtering context |
-| Financial report date annotations | NOT TESTED | Annotations are hardcoded placeholders, not actual company-specific dates |
+### [TODO] Backend Tests
+- Add tests for `POST /sync/trigger` and `GET /sync/status` endpoints
+- Add tests for `GET /accounting/items` endpoint
+- Update `POST /screen` tests to use mock DB instead of direct akshare calls
+- Increase API endpoint test coverage
 
----
-
-## Verification Commands
-
-After implementation:
+### [IN PROGRESS] Fix Lint Issues (PARTIALLY FIXED)
 ```bash
-# Backend
-cd src/backend
-pip install -r requirements.txt
-pytest tests/ -v --tb=short
-mypy app/
-ruff check app/
-
-# Frontend
-cd src/frontend
-npm install
-npm test
-npm run typecheck
-npm run lint
+cd src/backend && source .venv/bin/activate && ruff check src/backend/
 ```
+**Issues found**:
+- [x] `tests/conftest.py:2` - `MagicMock` unused - FIXED 2026-03-29
+- [ ] `tests/integration/test_formula_api.py:3,4` - `MagicMock`, `datetime` unused
+- [ ] `tests/unit/test_services/test_financial.py:2` - `AsyncMock` unused (likely needed for fixtures)
+- [ ] `tests/unit/test_services/test_formula_service.py:2` - `AsyncMock` unused (likely needed for fixtures)
+
+**Note**: The AsyncMock imports may be needed for fixtures that use AsyncMock. Need to verify if they are truly unused.
+
+### [TODO] Fix Type Issues (VERIFIED)
+```bash
+cd src/backend && source .venv/bin/activate && mypy src/backend/
+```
+**Issues found**:
+- Missing pandas stubs (`sync_stock_basic.py:150`)
+- Missing sqlalchemy stubs
+- 3x `Returning Any from function` errors in `checkpoint.py:38,47` and `main.py:45`
 
 ---
 
-## Release Planning
+## Priority 6: Documentation Updates
 
-### v0.4.0 - Feature Completion (COMPLETED)
-- [x] Add THS industry classification
-- [x] Implement CSRC 3-level hierarchy
-- [x] Display N/A for missing data
-- [x] Show available_years to users
-- [x] Fix AND/OR logic (add to request and backend)
-- [x] Add Years selector UI
-- [x] Add Save button to ScreeningPage
-- [x] Fix time series syntax (COLON token in lexer, advance-after-check in parser)
-- [x] Implement logging infrastructure (JTB-101 through JTB-108)
+### [TODO] Update SPEC.md or Create docs/
+- Document new `/sync/*` endpoints
+- Document the PostgreSQL schema
+- Update architecture diagram to show PostgreSQL as primary data source
 
-### v0.5.0 - Bug Fix Release (COMPLETED)
-- [x] Fix formula_evaluator year range index bug (BUG-F1)
-- [x] Fix formula_parser token type check (BUG-F2)
-- [x] Fix division by zero silent return in evaluate_list (BUG-F3)
-- [x] Fix TTL design flaw for saved screens (BUG-F4)
-- [x] Add TTL to saved formulas (BUG-F5)
-- [x] Replace KEYS * with SCAN in cache.py (BUG-F6)
-- [x] Fix profit_only false positive (BUG-H1)
-- [x] Fix require_complete_data threshold (BUG-H2)
-- [x] Fix silent exception swallowing in peer comparison (BUG-H5)
-- [x] Unify data source for company info (BUG-H6) - Changed get_company_info() to use stock_individual_info_em
-- [x] Add formula update API endpoint (BUG-H7)
-- [x] Fix secondary sorting not being passed (BUG-H8)
-- [x] Fix sort key causing missing data to sort to top (BUG-H9)
-- [x] Fix frontend type inconsistencies (GAP-F1) - Unified Condition type across api/screen.ts, stores/screeningStore.ts, lib/types.ts
-- [x] Show formula name in ConditionTree for formula conditions (GAP-F3) - condition.metric || condition.formula
-- [x] Include calculated metrics in CSV export (GAP-F4) - ExportButton now exports available_years and metrics
-- [x] Implement squarified TreeMap algorithm (GAP-F5) - Now uses proper squarified treemap with good aspect ratios
-- [x] Make time range selector functional (GAP-F6) - Now uses yearsMap[timeRange()] to fetch correct years
-- [x] Show formula calculation result in FormulaEditor (GAP-F7) - FormulaEditor now calls evaluateFormula with sample company metrics and displays result
-- [x] Add direct page number input to pagination (GAP-F8) - Added page number input field with validation, error display, and Enter key support
-- [x] Use Chinese metric names from METRIC_DEFINITIONS (GAP-F9) - metrics.py now uses Chinese names
-- [x] Add missing test coverage - Added 13 integration tests for formula API endpoints
-- [x] Document undocumented API endpoints - specs/05_backend.md updated with all endpoints
-- [x] Integrate log_data_acquisition() into akshare calls (NEW-1)
-- [x] Apply track_duration decorator to slow functions (NEW-2)
-- [x] Fix formula_service race condition (NEW-3)
-- [x] Remove duplicate CACHE_TTL in company.py and financial.py (NEW-4)
+---
 
-### v0.6.0 - Polish & Documentation (COMPLETED)
-- [x] Update specs/03_technical_architecture.md with correct paths
-- [x] Add formula engine documentation
-- [x] Fix data source documentation mismatch (specs/02_data_source.md)
-- [x] Add integration tests - Added `tests/integration/test_formula_api.py` with 13 tests for formula CRUD operations
-- [x] Document THS industry classification (specs/09_industry_comparison.md)
-- [x] Integrate log_data_acquisition() into akshare calls (NEW-1)
-- [x] Apply track_duration decorator to slow functions (NEW-2)
-- [x] Fix formula_service race condition with atomic operations (NEW-3)
-- [x] Add test coverage for time series parsing/evaluation (NEW-3)
-- [x] Add test coverage for multiple function arguments (NEW-3)
-- [x] Add test coverage for division by zero in evaluate_list() (NEW-3)
+## Already Implemented (Working Correctly)
 
-### v0.7.0 - Report Disclosure Dates (COMPLETED)
-- [x] Add get_disclosure_date() function to akshare_client (NEW-6)
-- [x] Add POST /api/v1/company/disclosure-dates endpoint (NEW-6)
-- [x] Update TrendComparisonChart to fetch and display actual disclosure dates (NEW-6)
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Formula lexer/parser/evaluator | ✅ Complete | Basic operators/functions work, cumulative calculation bug FIXED 2026-03-29 |
+| Edge case handling (ST, suspended, loss, missing) | ✅ Complete | filters for status, risk flags, profit_only, require_complete_data |
+| Formula API endpoints | ✅ Complete | validate, evaluate, save, get, delete |
+| Formula PUT endpoint | ✅ Complete | Backend has PUT /formula/{id}, frontend needs API call |
+| Frontend condition builder | ✅ Complete | MetricDropdown, OperatorSelector, ValueInput, LogicToggle |
+| Frontend visualization | ✅ Complete | TreeMap, TrendComparisonChart, IndustryHeatmap, RadarChart |
+| Frontend stores | ✅ Complete | screeningStore, companyStore, savedConditionsStore |
+| Redis caching infrastructure | ✅ Complete | RedisManager class with JSON support, atomic operations |
+| Request logging middleware | ✅ Complete | JSON logs, request ID, slow request alerts |
+| Logging (JTB-101 to JTB-109) | ✅ Complete | Console plain text, file JSON, all features present |
+| DB Models (SQLAlchemy) | ✅ Complete | All 6 tables present, minor schema discrepancies |
+| DB Connection | ✅ Complete | DatabaseManager with async engine |
+| Sync Scripts | ✅ Complete | sync_stock_basic.py, sync_accounting_data.py, sync_industry_class.py |
+| Sync API Endpoints | ⚠️ Partial | /sync/trigger and /sync/status exist but response schemas wrong |
+| Accounting API Endpoint | ✅ Complete | /accounting/items queries accounting_items table |
+| Frontend SyncManagementPage | ✅ Complete | Full UI per specs/04_frontend.md |
+| Frontend api/sync.ts | ✅ Complete | triggerSync, getSyncStatus |
+| cache/refresh endpoint | ✅ Complete | POST /cache/refresh clears Redis |
 
-### v0.7.8 - Bug Fix Release (COMPLETED)
-- [x] Fix BUG-F4: Saved screens index TTL now refreshed on access (screen.py:get_saved_screens)
-- [x] Clean up orphaned screen entries when retrieving saved screens
+---
 
-### v0.8.0 - E2E Test Suite (COMPLETED)
-- [x] Add E2E BDD test suite with 28 Gherkin feature files
-- [x] Coverage includes: screening, formulas, industry comparison, logging, caching
-- [x] Validates all JTB user stories from specifications
+## Implementation Verification Checklist
 
-### Environmental Notes
-- [NOTE] External akshare API (`stock_zh_a_spot_em`) requires network access to East Money servers
-- [NOTE] E2E tests cannot be run in environments with restricted network/proxy access
-- [NOTE] Backend/frontend unit tests pass using mocks; integration tests require live API
+### Backend Infrastructure
+- [x] PostgreSQL connection and models (db/database.py, db/models.py)
+- [x] Sync scripts directory exists (scripts/)
+- [x] sync_stock_basic.py implemented
+- [x] sync_accounting_data.py implemented
+- [x] sync_industry_class.py implemented
+- [x] Checkpoint utilities implemented
+- [x] Sync API endpoints implemented (/sync/trigger, /sync/status)
+- [x] Accounting items endpoint implemented (/accounting/items)
 
+### Backend Refactoring (CRITICAL - NOT DONE)
+- [ ] **REFACTOR: /screen endpoint must query local DB instead of calling akshare** (delegates to financial.py which calls akshare)
+- [ ] **REFACTOR: /company/{code} must query local DB instead of calling akshare**
+- [ ] **REFACTOR: /company/compare must query local DB instead of calling akshare**
+- [ ] **REFACTOR: /company/trend must query local DB instead of calling akshare**
+- [ ] **REFACTOR: /company/disclosure-dates must query local DB instead of calling akshare**
+- [ ] **REFACTOR: Industry endpoints must query local DB instead of calling akshare**
+- [ ] **FIX: /metrics response must return derived_metrics + raw_items structure**
+- [ ] **FIX: /company/disclosure-dates response must return nested annual/quarterly structure**
+- [x] **BUGFIX: Formula cumulative calculations (SUM of time series) - FIXED 2026-03-29**
+
+### Sync Endpoints
+- [ ] **FIX: /sync/status response schema must return nested last_sync object**
+- [ ] **FIX: /sync/trigger must pass industry_sw_three to sync_all()**
+
+### Frontend
+- [x] SyncManagementPage implemented
+- [x] api/sync.ts implemented
+- [ ] syncStore.ts implemented (MISSING)
+- [ ] getCompanyTrend() in company.ts (MISSING)
+- [ ] getTHSIndustries() in company.ts (MISSING)
+- [ ] refreshCache() in screen.ts (MISSING)
+- [ ] updateFormula() in formula.ts (MISSING)
+- [ ] getAccountingItems() in accounting.ts (MISSING - NEW FILE)
+- [ ] src/lib/ contents created at project root (EMPTY)
+- [ ] PeerComparison.tsx THS support (MISSING)
+
+### Schema Updates
+- [ ] /metrics response matches spec (derived_metrics + raw_items)
+- [ ] /company/disclosure-dates response matches spec (nested structure)
+- [ ] Formula Pydantic schemas verified complete
+
+### Database Schema Compliance
+- [ ] accounting_items: Fix String(50) → String(20), add composite unique constraint
+- [ ] accounting_data: Fix Float → DECIMAL(20,4), add composite unique constraint
+- [ ] sync_status_history: Fix Text → TEXT[] for failed_codes
+
+### Testing
+- [ ] Sync endpoint tests
+- [ ] Accounting items endpoint tests
+- [ ] DB-based screen tests
+- [ ] Formula cumulative calculation tests
+- [ ] Ruff lint issues fixed (5 unused imports)
+- [ ] Mypy type errors fixed (pandas stubs, Returning Any)
+
+---
+
+## New Specification Items Needed
+
+### specs/11_formula_engine_bugs.md (NEW)
+Document the cumulative calculation bug in the formula engine:
+- `SUM(metric[2014:2023])` doesn't reduce to scalar properly
+- Division of aggregate results fails
+- Nested cumulative expressions fail
+
+(End of file - total 373 lines)

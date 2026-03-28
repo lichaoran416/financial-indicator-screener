@@ -31,7 +31,7 @@ class FormulaEvaluator:
     def set_metrics_data(self, metrics_data: MetricData) -> None:
         self.metrics_data = metrics_data
 
-    def evaluate(self, node: ASTNode) -> float:
+    def evaluate(self, node: ASTNode) -> Union[float, list[float]]:
         if node.node_type == ASTNodeType.NUMBER:
             return float(node.value)
 
@@ -54,16 +54,49 @@ class FormulaEvaluator:
             left_val = self.evaluate(cast(ASTNode, node.left))
             right_val = self.evaluate(cast(ASTNode, node.right))
 
-            if node.operator == "+":
-                return left_val + right_val
-            elif node.operator == "-":
-                return left_val - right_val
-            elif node.operator == "*":
-                return left_val * right_val
-            elif node.operator == "/":
-                if right_val == 0:
-                    raise FormulaEvaluatorError(f"Division by zero: {left_val} / {right_val}")
-                return left_val / right_val
+            if isinstance(left_val, list) and isinstance(right_val, list):
+                max_len = max(len(left_val), len(right_val), 1)
+                left_padded = left_val + [0.0] * (max_len - len(left_val))
+                right_padded = right_val + [0.0] * (max_len - len(right_val))
+                if node.operator == "+":
+                    return [l + r for l, r in zip(left_padded, right_padded)]
+                elif node.operator == "-":
+                    return [l - r for l, r in zip(left_padded, right_padded)]
+                elif node.operator == "*":
+                    return [l * r for l, r in zip(left_padded, right_padded)]
+                elif node.operator == "/":
+                    return [l / r if r != 0 else 0.0 for l, r in zip(left_padded, right_padded)]
+            elif isinstance(left_val, list):
+                scalar = right_val
+                if node.operator == "+":
+                    return [v + scalar for v in left_val]
+                elif node.operator == "-":
+                    return [v - scalar for v in left_val]
+                elif node.operator == "*":
+                    return [v * scalar for v in left_val]
+                elif node.operator == "/":
+                    return [v / scalar if scalar != 0 else 0.0 for v in left_val]
+            elif isinstance(right_val, list):
+                scalar = left_val
+                if node.operator == "+":
+                    return [scalar + v for v in right_val]
+                elif node.operator == "-":
+                    return [scalar - v for v in right_val]
+                elif node.operator == "*":
+                    return [scalar * v for v in right_val]
+                elif node.operator == "/":
+                    return [scalar / v if v != 0 else 0.0 for v in right_val]
+            else:
+                if node.operator == "+":
+                    return left_val + right_val
+                elif node.operator == "-":
+                    return left_val - right_val
+                elif node.operator == "*":
+                    return left_val * right_val
+                elif node.operator == "/":
+                    if right_val == 0:
+                        raise FormulaEvaluatorError(f"Division by zero: {left_val} / {right_val}")
+                    return left_val / right_val
 
         if node.node_type == ASTNodeType.FUNCTION_CALL:
             return self.evaluate_function(cast(str, node.metric_name), node.args)
@@ -151,7 +184,10 @@ class FormulaEvaluator:
         values: list[float] = []
         for arg in args:
             val = self.evaluate(arg)
-            values.append(val)
+            if isinstance(val, list):
+                values.extend(val)
+            else:
+                values.append(val)
 
         return self.AGGREGATE_FUNCTIONS[func_name](values)
 
