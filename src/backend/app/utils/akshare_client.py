@@ -537,6 +537,97 @@ class AkshareClient:
                 error=error_msg,
             )
 
+    async def get_disclosure_dates_dict(
+        self, symbol: str, period: str = "annual"
+    ) -> dict[str, dict[str, dict[str, str]]]:
+        start_time = time.perf_counter()
+        success = False
+        error_msg = None
+        try:
+            normalized_symbol = self._normalize_symbol(symbol)
+            period_map = {
+                "annual": "最近四期的财报",
+            }
+            disclosure_period = period_map.get(period, "最近四期的财报")
+            df = await self._retry_async(
+                ak.stock_report_disclosure,
+                "沪深京",
+                disclosure_period,
+            )
+            if df is None or df.empty:
+                success = True
+                return {"annual": {}, "quarterly": {}}
+            stock_code = normalized_symbol.replace("SH", "").replace("SZ", "").replace("BJ", "")
+            annual_dates: dict[str, dict[str, str]] = {}
+            quarterly_dates: dict[str, dict[str, str]] = {}
+            for _, row in df.iterrows():
+                code = str(row.get("股票代码", "")).zfill(6)
+                if code == stock_code or code == normalized_symbol:
+                    actual_date = row.get("实际披露")
+                    report_date = row.get("报告日期")
+                    div_id = row.get(" dividend_id", "")
+                    if div_id and str(div_id).startswith("20"):
+                        year_str = str(div_id)[:4]
+                        if len(str(div_id)) >= 6 and str(div_id)[4:6].isdigit():
+                            quarter = int(str(div_id)[4:6])
+                            if quarter >= 1 and quarter <= 4:
+                                key = f"{year_str}Q{quarter}"
+                                quarterly_dates[key] = {
+                                    "report_date": str(report_date)[:10]
+                                    if report_date and pd.notna(report_date)
+                                    else "",
+                                    "disclosure_date": str(actual_date)[:10]
+                                    if actual_date and pd.notna(actual_date)
+                                    else "",
+                                }
+                            else:
+                                annual_dates[year_str] = {
+                                    "report_date": str(report_date)[:10]
+                                    if report_date and pd.notna(report_date)
+                                    else "",
+                                    "disclosure_date": str(actual_date)[:10]
+                                    if actual_date and pd.notna(actual_date)
+                                    else "",
+                                }
+                        else:
+                            annual_dates[year_str] = {
+                                "report_date": str(report_date)[:10]
+                                if report_date and pd.notna(report_date)
+                                else "",
+                                "disclosure_date": str(actual_date)[:10]
+                                if actual_date and pd.notna(actual_date)
+                                else "",
+                            }
+                    elif report_date and pd.notna(report_date):
+                        date_str = str(report_date)
+                        if len(date_str) >= 4:
+                            year_str = date_str[:4]
+                            annual_dates[year_str] = {
+                                "report_date": str(report_date)[:10]
+                                if report_date and pd.notna(report_date)
+                                else "",
+                                "disclosure_date": str(actual_date)[:10]
+                                if actual_date and pd.notna(actual_date)
+                                else "",
+                            }
+            success = True
+            return {"annual": annual_dates, "quarterly": quarterly_dates}
+        except AkshareAPIError:
+            return {"annual": {}, "quarterly": {}}
+        except Exception as e:
+            error_msg = str(e)
+            return {"annual": {}, "quarterly": {}}
+        finally:
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            log_data_acquisition(
+                operation="get_disclosure_dates_dict",
+                symbol=symbol,
+                success=success,
+                duration_ms=duration_ms,
+                request_id=get_request_id(),
+                error=error_msg,
+            )
+
     @track_duration
     async def get_industry_peers(self, symbol: str, industry_type: str = "csrc") -> list[str]:
         start_time = time.perf_counter()

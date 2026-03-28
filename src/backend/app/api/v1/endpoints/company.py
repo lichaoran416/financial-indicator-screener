@@ -25,6 +25,7 @@ from app.models.schemas import (
     CompanyDisclosureDate,
 )
 from app.services.financial import financial_service
+from app.utils.akshare_client import akshare_client
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -442,7 +443,9 @@ async def get_disclosure_dates(request: DisclosureDateRequest) -> DisclosureDate
     for code in request.codes:
         name = code_to_name.get(code, "")
 
-        disclosure_dates: dict[str, Any] = {"annual": {}, "quarterly": {}}
+        disclosure_dates = await akshare_client.get_disclosure_dates_dict(
+            code, request.period.value
+        )
 
         companies.append(
             CompanyDisclosureDate(code=code, name=name, disclosure_dates=disclosure_dates)

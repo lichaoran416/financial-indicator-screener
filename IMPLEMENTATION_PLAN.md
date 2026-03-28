@@ -22,6 +22,10 @@ A stock analysis tool for A-share market that screens/ranks companies using cust
 - API endpoints (`/screen`, `/company/compare`, industry endpoints) now query local PostgreSQL
 - `/company/{code}` fetches PE/PB via akshare by design (real-time market cap not stored in DB)
 - **2026-03-29**: Fixed mypy type errors in `formula_evaluator.py` (unary/binary operator type narrowing); installed `pandas-stubs`
+- **BUG FIX (2026-03-29)**: Fixed `/company/disclosure-dates` endpoint returning empty dictionaries
+  - Previously: endpoint did not call akshare_client and returned empty `disclosure_dates`
+  - Now: properly calls `akshare_client.get_disclosure_dates_dict()` to fetch real data
+  - Added new method `get_disclosure_dates_dict()` to akshare_client.py for full disclosure date structure
 
 ---
 
@@ -49,7 +53,7 @@ cd src/backend && source .venv/bin/activate && mypy app/
 ```
 - `pandas-stubs` installed (2026-03-29)
 - Remaining mypy errors are in `akshare_client.py` due to missing `akshare` library stubs
-  - Lines 49, 122, 619: `Returning Any from function` - all `akshare` API calls return untyped results
+  - Lines 49, 122, 637: `Returning Any from function` - all `akshare` API calls return untyped results
 - `scripts/sync_stock_basic.py:7` - missing akshare stubs (same library issue)
 
 ---
