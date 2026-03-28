@@ -5,9 +5,14 @@
 A stock analysis tool for A-share market that screens/ranks companies using custom financial metrics with multi-timeframe conditions, industry comparison, and visualization.
 
 **Current State (2026-03-29)**:
-- 152 backend tests pass, 6 integration tests fail (async context manager mocking issues)
+- 158 backend tests pass, all integration tests pass (was 152 tests, 6 integration tests failing)
 - Backend lint and frontend lint/typecheck all pass
 - Working tree has changes
+- **CRITICAL FIX (2026-03-29)**: Fixed async context manager mocking in `tests/integration/test_sync_api.py`
+  - Fixed `mock_db_manager.session()` to use `PropertyMock` for proper async context manager support
+  - Fixed `mock_db_session.execute` to be `AsyncMock` so `await session.execute()` works
+  - Fixed `mock_result.scalars.return_value.all.return_value` chain for proper result handling
+  - All 11 integration tests now pass (was 6 failing)
 - **CRITICAL FIX**: `sync` and `accounting` routers now registered in `router.py`
   - Previously: `/sync/trigger`, `/sync/status`, `/accounting/items` returned 404
   - Now: endpoints properly registered via `include_router(sync.router)` and `include_router(accounting.router)`
@@ -29,9 +34,9 @@ Low priority - minor discrepancies in `src/backend/app/db/models.py`:
 | `sync_status_history` | `Text` should be `TEXT[]` for `failed_codes` |
 
 ### [TODO] Backend Test Coverage
-- Add tests for `POST /sync/trigger` and `GET /sync/status` endpoints
-- Add tests for `GET /accounting/items` endpoint
-- Update `POST /screen` tests to use mock DB instead of direct akshare calls
+- [x] Add tests for `POST /sync/trigger` and `GET /sync/status` endpoints - DONE
+- [x] Add tests for `GET /accounting/items` endpoint - DONE
+- [ ] Update `POST /screen` tests to use mock DB instead of direct akshare calls
 
 ### [TODO] Backend Lint Issues
 ```bash
@@ -93,17 +98,16 @@ cd src/backend && source .venv/bin/activate && mypy app/
 - [x] All stores implemented
 - [x] PeerComparison THS support
 
-### Testing - PARTIAL
-- [x] 152 backend tests pass (was 147)
-- [ ] 6 integration tests fail - `tests/integration/test_sync_api.py` has async context manager mocking issues
-  - `test_get_sync_status_empty` - MagicMock/AsyncMock async context manager issue
-  - `test_get_sync_status_with_industry_filter` - same issue
-  - `test_get_accounting_items_*` (4 tests) - same issue
+### Testing - ALL PASSING
+- [x] 158 backend tests pass (was 152)
+- [x] All 11 integration tests pass (was 6 failing)
+  - `test_get_sync_status_empty` - FIXED with PropertyMock for session
+  - `test_get_sync_status_with_industry_filter` - FIXED
+  - `test_get_accounting_items_*` (4 tests) - FIXED with PropertyMock and AsyncMock execute
 - [x] All 53 frontend tests pass (verified previously)
-- [x] Ruff lint passes on app/
-- [x] Sync trigger tests pass (5/7 sync API tests)
-- [ ] Sync status tests - mocking issue with db_manager.session() async context manager
-- [ ] Accounting items tests - same async context manager mocking issue
+- [x] Ruff lint passes on app/ and tests/
+- [x] All 7 sync API tests pass
+- [x] All 4 accounting items tests pass
 
 ### Schema Compliance - NOT DONE (low priority)
 - [ ] accounting_items schema fixes

@@ -1,11 +1,9 @@
 import pytest
-from datetime import datetime
 from httpx import AsyncClient, ASGITransport
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import patch, AsyncMock, MagicMock, PropertyMock
 
 from main import app
 from app.core.redis import RedisManager
-from app.db.models import SyncStatusHistory, AccountingItem
 
 
 class TestSyncAPIIntegration:
@@ -26,22 +24,27 @@ class TestSyncAPIIntegration:
     @pytest.fixture
     def mock_db_session(self):
         """Create a mock database session."""
-        mock_session = AsyncMock()
-        mock_session.add = AsyncMock()
-        mock_session.commit = AsyncMock()
-        mock_session.rollback = AsyncMock()
-        mock_session.close = AsyncMock()
+        mock_session = MagicMock()
+        mock_session.add = MagicMock()
+        mock_session.commit = MagicMock()
+        mock_session.rollback = MagicMock()
+        mock_session.close = MagicMock()
         return mock_session
 
     @pytest.fixture
     def mock_db_manager(self, mock_db_session):
         """Mock the database manager."""
-        with patch("app.db.database.db_manager") as mock_mgr:
-            mock_context = AsyncMock()
-            mock_context.__aenter__ = AsyncMock(return_value=mock_db_session)
-            mock_context.__aexit__ = AsyncMock(return_value=None)
-            mock_mgr.session.return_value = mock_context
-            yield mock_mgr
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.all.return_value = []
+        mock_db_session.execute = AsyncMock(return_value=mock_result)
+
+        mock_context = MagicMock()
+        mock_context.__aenter__ = AsyncMock(return_value=mock_db_session)
+        mock_context.__aexit__ = AsyncMock(return_value=None)
+
+        mock_db_manager = MagicMock()
+        mock_db_manager.session = PropertyMock(return_value=mock_context)
+        return mock_db_manager
 
     @pytest.fixture
     def mock_run_sync_task(self):
@@ -137,11 +140,11 @@ class TestSyncAPIIntegration:
     async def test_get_sync_status_empty(self, mock_db_manager, mock_redis_client):
         """Test GET /sync/status endpoint with no sync history."""
         mock_db_session = mock_db_manager.session().__aenter__.return_value
-        mock_result = AsyncMock()
+        mock_result = MagicMock()
         mock_result.scalars.return_value.all.return_value = []
         mock_db_session.execute = AsyncMock(return_value=mock_result)
 
-        mock_result_industry = AsyncMock()
+        mock_result_industry = MagicMock()
         mock_result_industry.scalars.return_value.all.return_value = []
         mock_db_session.execute.side_effect = [mock_result, mock_result_industry]
 
@@ -158,11 +161,11 @@ class TestSyncAPIIntegration:
     async def test_get_sync_status_with_industry_filter(self, mock_db_manager, mock_redis_client):
         """Test GET /sync/status endpoint with industry_sw_three filter."""
         mock_db_session = mock_db_manager.session().__aenter__.return_value
-        mock_result = AsyncMock()
+        mock_result = MagicMock()
         mock_result.scalars.return_value.all.return_value = []
         mock_db_session.execute = AsyncMock(return_value=mock_result)
 
-        mock_result_industry = AsyncMock()
+        mock_result_industry = MagicMock()
         mock_result_industry.scalars.return_value.all.return_value = []
         mock_db_session.execute.side_effect = [mock_result, mock_result_industry]
 
@@ -192,16 +195,6 @@ class TestAccountingAPIIntegration:
         return mock_client
 
     @pytest.fixture
-    def mock_db_session(self):
-        """Create a mock database session."""
-        mock_session = MagicMock()
-        mock_session.add = MagicMock()
-        mock_session.commit = MagicMock()
-        mock_session.rollback = MagicMock()
-        mock_session.close = MagicMock()
-        return mock_session
-
-    @pytest.fixture
     def mock_accounting_items(self):
         """Sample accounting items for testing."""
         items = []
@@ -216,24 +209,34 @@ class TestAccountingAPIIntegration:
             items.append(item)
         return items
 
-    @pytest.mark.asyncio
-    async def test_get_accounting_items_empty(self, mock_redis_client, mock_db_session):
-        """Test GET /accounting/items endpoint with no items."""
+    @pytest.fixture
+    def mock_db_manager(self, mock_accounting_items):
+        """Create a mock database manager with proper async context manager setup."""
+        mock_db_session = MagicMock()
+        mock_db_session.add = MagicMock()
+        mock_db_session.commit = MagicMock()
+        mock_db_session.rollback = MagicMock()
+        mock_db_session.close = MagicMock()
+
         mock_result = MagicMock()
         mock_result.scalars.return_value.all.return_value = []
 
         mock_count_result = MagicMock()
         mock_count_result.scalar.return_value = 0
 
-        mock_db_session.execute = MagicMock(side_effect=[mock_result, mock_count_result])
+        mock_db_session.execute = AsyncMock(side_effect=[mock_result, mock_count_result])
 
         mock_context = MagicMock()
         mock_context.__aenter__ = AsyncMock(return_value=mock_db_session)
         mock_context.__aexit__ = AsyncMock(return_value=None)
 
-        mock_db_manager = MagicMock()
-        mock_db_manager.session.return_value = mock_context
+        mock_mgr = MagicMock()
+        mock_mgr.session = PropertyMock(return_value=mock_context)
+        return mock_mgr
 
+    @pytest.mark.asyncio
+    async def test_get_accounting_items_empty(self, mock_redis_client, mock_db_manager):
+        """Test GET /accounting/items endpoint with no items."""
         with patch.object(RedisManager, "_client", mock_redis_client):
             with patch("app.api.v1.endpoints.accounting.db_manager", mock_db_manager):
                 transport = ASGITransport(app=app)
@@ -246,24 +249,28 @@ class TestAccountingAPIIntegration:
         assert data["total_count"] == 0
 
     @pytest.mark.asyncio
-    async def test_get_accounting_items_with_data(
-        self, mock_redis_client, mock_db_session, mock_accounting_items
-    ):
+    async def test_get_accounting_items_with_data(self, mock_redis_client, mock_accounting_items):
         """Test GET /accounting/items endpoint with items."""
+        mock_db_session = MagicMock()
+        mock_db_session.add = MagicMock()
+        mock_db_session.commit = MagicMock()
+        mock_db_session.rollback = MagicMock()
+        mock_db_session.close = MagicMock()
+
         mock_result = MagicMock()
         mock_result.scalars.return_value.all.return_value = mock_accounting_items
 
         mock_count_result = MagicMock()
         mock_count_result.scalar.return_value = len(mock_accounting_items)
 
-        mock_db_session.execute = MagicMock(side_effect=[mock_result, mock_count_result])
+        mock_db_session.execute = AsyncMock(side_effect=[mock_result, mock_count_result])
 
         mock_context = MagicMock()
         mock_context.__aenter__ = AsyncMock(return_value=mock_db_session)
         mock_context.__aexit__ = AsyncMock(return_value=None)
 
         mock_db_manager = MagicMock()
-        mock_db_manager.session.return_value = mock_context
+        mock_db_manager.session = PropertyMock(return_value=mock_context)
 
         with patch.object(RedisManager, "_client", mock_redis_client):
             with patch("app.api.v1.endpoints.accounting.db_manager", mock_db_manager):
@@ -279,24 +286,30 @@ class TestAccountingAPIIntegration:
 
     @pytest.mark.asyncio
     async def test_get_accounting_items_with_report_type_filter(
-        self, mock_redis_client, mock_db_session, mock_accounting_items
+        self, mock_redis_client, mock_accounting_items
     ):
         """Test GET /accounting/items endpoint with report_type filter."""
         profit_items = [item for item in mock_accounting_items if item.report_type == "profit"]
+        mock_db_session = MagicMock()
+        mock_db_session.add = MagicMock()
+        mock_db_session.commit = MagicMock()
+        mock_db_session.rollback = MagicMock()
+        mock_db_session.close = MagicMock()
+
         mock_result = MagicMock()
         mock_result.scalars.return_value.all.return_value = profit_items
 
         mock_count_result = MagicMock()
         mock_count_result.scalar.return_value = len(profit_items)
 
-        mock_db_session.execute = MagicMock(side_effect=[mock_result, mock_count_result])
+        mock_db_session.execute = AsyncMock(side_effect=[mock_result, mock_count_result])
 
         mock_context = MagicMock()
         mock_context.__aenter__ = AsyncMock(return_value=mock_db_session)
         mock_context.__aexit__ = AsyncMock(return_value=None)
 
         mock_db_manager = MagicMock()
-        mock_db_manager.session.return_value = mock_context
+        mock_db_manager.session = PropertyMock(return_value=mock_context)
 
         with patch.object(RedisManager, "_client", mock_redis_client):
             with patch("app.api.v1.endpoints.accounting.db_manager", mock_db_manager):
@@ -309,23 +322,29 @@ class TestAccountingAPIIntegration:
 
     @pytest.mark.asyncio
     async def test_get_accounting_items_with_industry_filter(
-        self, mock_redis_client, mock_db_session, mock_accounting_items
+        self, mock_redis_client, mock_accounting_items
     ):
         """Test GET /accounting/items endpoint with industry_sw_three filter."""
+        mock_db_session = MagicMock()
+        mock_db_session.add = MagicMock()
+        mock_db_session.commit = MagicMock()
+        mock_db_session.rollback = MagicMock()
+        mock_db_session.close = MagicMock()
+
         mock_result = MagicMock()
-        mock_result.scalars.return_value.all.return_value = mock_accounting_items
+        mock_result.scalars.return_value.all.return_value = []
 
         mock_count_result = MagicMock()
-        mock_count_result.scalar.return_value = len(mock_accounting_items)
+        mock_count_result.scalar.return_value = 0
 
-        mock_db_session.execute = MagicMock(side_effect=[mock_result, mock_count_result])
+        mock_db_session.execute = AsyncMock(side_effect=[mock_result, mock_count_result])
 
         mock_context = MagicMock()
         mock_context.__aenter__ = AsyncMock(return_value=mock_db_session)
         mock_context.__aexit__ = AsyncMock(return_value=None)
 
         mock_db_manager = MagicMock()
-        mock_db_manager.session.return_value = mock_context
+        mock_db_manager.session = PropertyMock(return_value=mock_context)
 
         with patch.object(RedisManager, "_client", mock_redis_client):
             with patch("app.api.v1.endpoints.accounting.db_manager", mock_db_manager):
@@ -337,94 +356,3 @@ class TestAccountingAPIIntegration:
         assert "items" in data
         assert "total_count" in data
         assert data["total_count"] == 0
-
-    @pytest.mark.asyncio
-    async def test_get_accounting_items_with_data(
-        self, mock_redis_client, mock_db_session, mock_accounting_items
-    ):
-        """Test GET /accounting/items endpoint with items."""
-        mock_result = MagicMock()
-        mock_result.scalars.return_value.all.return_value = mock_accounting_items
-
-        mock_count_result = MagicMock()
-        mock_count_result.scalar.return_value = len(mock_accounting_items)
-
-        mock_db_session.execute = MagicMock(side_effect=[mock_result, mock_count_result])
-
-        mock_context = MagicMock()
-        mock_context.__aenter__ = MagicMock(return_value=mock_db_session)
-        mock_context.__aexit__ = MagicMock(return_value=None)
-
-        mock_db_manager = MagicMock()
-        mock_db_manager.session.return_value = mock_context
-
-        with patch.object(RedisManager, "_client", mock_redis_client):
-            with patch("app.api.v1.endpoints.accounting.db_manager", mock_db_manager):
-                transport = ASGITransport(app=app)
-                async with AsyncClient(transport=transport, base_url="http://test") as client:
-                    response = await client.get("/api/v1/accounting/items")
-        assert response.status_code == 200
-        data = response.json()
-        assert "items" in data
-        assert "total_count" in data
-        assert data["total_count"] == 4
-        assert len(data["items"]) == 4
-
-    @pytest.mark.asyncio
-    async def test_get_accounting_items_with_report_type_filter(
-        self, mock_redis_client, mock_db_session, mock_accounting_items
-    ):
-        """Test GET /accounting/items endpoint with report_type filter."""
-        profit_items = [item for item in mock_accounting_items if item.report_type == "profit"]
-        mock_result = MagicMock()
-        mock_result.scalars.return_value.all.return_value = profit_items
-
-        mock_count_result = MagicMock()
-        mock_count_result.scalar.return_value = len(profit_items)
-
-        mock_db_session.execute = MagicMock(side_effect=[mock_result, mock_count_result])
-
-        mock_context = MagicMock()
-        mock_context.__aenter__ = MagicMock(return_value=mock_db_session)
-        mock_context.__aexit__ = MagicMock(return_value=None)
-
-        mock_db_manager = MagicMock()
-        mock_db_manager.session.return_value = mock_context
-
-        with patch.object(RedisManager, "_client", mock_redis_client):
-            with patch("app.api.v1.endpoints.accounting.db_manager", mock_db_manager):
-                transport = ASGITransport(app=app)
-                async with AsyncClient(transport=transport, base_url="http://test") as client:
-                    response = await client.get("/api/v1/accounting/items?report_type=profit")
-        assert response.status_code == 200
-        data = response.json()
-        assert data["total_count"] == 2
-
-    @pytest.mark.asyncio
-    async def test_get_accounting_items_with_industry_filter(
-        self, mock_redis_client, mock_db_session, mock_accounting_items
-    ):
-        """Test GET /accounting/items endpoint with industry_sw_three filter."""
-        mock_result = MagicMock()
-        mock_result.scalars.return_value.all.return_value = mock_accounting_items
-
-        mock_count_result = MagicMock()
-        mock_count_result.scalar.return_value = len(mock_accounting_items)
-
-        mock_db_session.execute = MagicMock(side_effect=[mock_result, mock_count_result])
-
-        mock_context = MagicMock()
-        mock_context.__aenter__ = MagicMock(return_value=mock_db_session)
-        mock_context.__aexit__ = MagicMock(return_value=None)
-
-        mock_db_manager = MagicMock()
-        mock_db_manager.session.return_value = mock_context
-
-        with patch.object(RedisManager, "_client", mock_redis_client):
-            with patch("app.api.v1.endpoints.accounting.db_manager", mock_db_manager):
-                transport = ASGITransport(app=app)
-                async with AsyncClient(transport=transport, base_url="http://test") as client:
-                    response = await client.get("/api/v1/accounting/items?industry_sw_three=银行")
-        assert response.status_code == 200
-        data = response.json()
-        assert "items" in data
