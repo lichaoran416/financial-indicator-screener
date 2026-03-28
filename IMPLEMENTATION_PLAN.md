@@ -10,7 +10,7 @@ A stock analysis tool for A-share market that screens/ranks companies using cust
 - All integration tests pass
 - Backend lint and frontend lint/typecheck all pass
 - Working tree clean
-- **Git tag v0.9.15 created**
+- **Git tag v0.9.16 created** (2026-03-29)
 - **CRITICAL FIX (2026-03-29)**: Fixed async context manager mocking in `tests/integration/test_sync_api.py`
   - Fixed `mock_db_manager.session()` to use `PropertyMock` for proper async context manager support
   - Fixed `mock_db_session.execute` to be `AsyncMock` so `await session.execute()` works
