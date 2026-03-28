@@ -5,9 +5,12 @@
 A stock analysis tool for A-share market that screens/ranks companies using custom financial metrics with multi-timeframe conditions, industry comparison, and visualization.
 
 **Current State (2026-03-29)**:
-- All 147 backend tests pass, all 53 frontend tests pass
+- 152 backend tests pass, 6 integration tests fail (async context manager mocking issues)
 - Backend lint and frontend lint/typecheck all pass
-- Working tree is clean
+- Working tree has changes
+- **CRITICAL FIX**: `sync` and `accounting` routers now registered in `router.py`
+  - Previously: `/sync/trigger`, `/sync/status`, `/accounting/items` returned 404
+  - Now: endpoints properly registered via `include_router(sync.router)` and `include_router(accounting.router)`
 - API endpoints (`/screen`, `/company/compare`, industry endpoints) now query local PostgreSQL
 - `/company/{code}` fetches PE/PB via akshare by design (real-time market cap not stored in DB)
 - **2026-03-29**: Fixed mypy type errors in `formula_evaluator.py` (unary/binary operator type narrowing); installed `pandas-stubs`
@@ -91,11 +94,16 @@ cd src/backend && source .venv/bin/activate && mypy app/
 - [x] PeerComparison THS support
 
 ### Testing - PARTIAL
-- [x] All 147 backend tests pass
-- [x] All 53 frontend tests pass
+- [x] 152 backend tests pass (was 147)
+- [ ] 6 integration tests fail - `tests/integration/test_sync_api.py` has async context manager mocking issues
+  - `test_get_sync_status_empty` - MagicMock/AsyncMock async context manager issue
+  - `test_get_sync_status_with_industry_filter` - same issue
+  - `test_get_accounting_items_*` (4 tests) - same issue
+- [x] All 53 frontend tests pass (verified previously)
 - [x] Ruff lint passes on app/
-- [ ] Sync endpoint tests
-- [ ] Accounting items endpoint tests
+- [x] Sync trigger tests pass (5/7 sync API tests)
+- [ ] Sync status tests - mocking issue with db_manager.session() async context manager
+- [ ] Accounting items tests - same async context manager mocking issue
 
 ### Schema Compliance - NOT DONE (low priority)
 - [ ] accounting_items schema fixes
