@@ -28,7 +28,10 @@ A stock analysis tool for A-share market that screens/ranks companies using cust
   - Added new method `get_disclosure_dates_dict()` to akshare_client.py for full disclosure date structure
 - **FIX (2026-03-29)**: Fixed FastAPI deprecation warnings
   - `company.py:86`: Changed `example="000001"` to `examples=["000001"]`
-  - `sync.py:60`: Changed `datetime.utcnow()` to `datetime.now(UTC)` for timezone-aware datetime
+  - `sync.py:60`: Changed `datetime.utcnow()` to `datetime.now(timezone.utc)` for timezone-aware datetime
+- **FIX (2026-03-29)**: Fixed mypy `datetime.UTC` attribute error in `sync.py`
+  - Changed `from datetime import UTC` to `from datetime import timezone`
+  - Changed `datetime.now(UTC)` to `datetime.now(timezone.utc)` to fix mypy false positive
 
 ---
 
@@ -56,8 +59,9 @@ cd src/backend && source .venv/bin/activate && mypy app/
 ```
 - `pandas-stubs` installed (2026-03-29)
 - Remaining mypy errors are in `akshare_client.py` due to missing `akshare` library stubs
-  - Lines 49, 122, 637: `Returning Any from function` - all `akshare` API calls return untyped results
+  - Lines 49, 122, 710: `Returning Any from function` - all `akshare` API calls return untyped results
 - `scripts/sync_stock_basic.py:7` - missing akshare stubs (same library issue)
+- Note: mypy `datetime.UTC` error in sync.py fixed by using `timezone.utc` instead
 
 ---
 
