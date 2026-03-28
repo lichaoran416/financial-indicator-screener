@@ -5,10 +5,12 @@
 A stock analysis tool for A-share market that screens/ranks companies using custom financial metrics with multi-timeframe conditions, industry comparison, and visualization.
 
 **Current State (2026-03-29)**:
-- 174 backend tests pass (158 + 16 new screen API integration tests)
+- 174 backend tests pass
+- 53 frontend tests pass
 - All integration tests pass
 - Backend lint and frontend lint/typecheck all pass
-- Working tree has changes (new screen API integration tests)
+- Working tree clean
+- **Git tag v0.9.11 created**
 - **CRITICAL FIX (2026-03-29)**: Fixed async context manager mocking in `tests/integration/test_sync_api.py`
   - Fixed `mock_db_manager.session()` to use `PropertyMock` for proper async context manager support
   - Fixed `mock_db_session.execute` to be `AsyncMock` so `await session.execute()` works
@@ -34,30 +36,21 @@ Low priority - minor discrepancies in `src/backend/app/db/models.py`:
 | `accounting_data` | `Float` should be `DECIMAL(20,4)`; missing composite unique constraint |
 | `sync_status_history` | `Text` should be `TEXT[]` for `failed_codes` |
 
-### [TODO] Backend Test Coverage
-- [x] Add tests for `POST /sync/trigger` and `GET /sync/status` endpoints - DONE
-- [x] Add tests for `GET /accounting/items` endpoint - DONE
-- [x] Update `POST /screen` tests to use mock DB instead of direct akshare calls - DONE (16 new integration tests)
+**Note**: No migration system (Alembic) exists. Schema changes would require manual migration or new deployment.
 
-### [TODO] Backend Lint Issues
-```bash
-cd src/backend && source .venv/bin/activate && ruff check tests/ app/
-```
-- All checks pass (unused imports issue was resolved before)
+### [TODO] Documentation (low priority)
+- Document new `/sync/*` endpoints
+- Document PostgreSQL schema
+- Update architecture diagram to show PostgreSQL as primary data source
 
-### [TODO] Backend Type Issues
+### Backend Type Issues (known library issue, not code)
 ```bash
 cd src/backend && source .venv/bin/activate && mypy app/
 ```
 - `pandas-stubs` installed (2026-03-29)
-- Remaining mypy errors are in `akshare_client.py` due to missing `akshare` library stubs (library issue, not code)
+- Remaining mypy errors are in `akshare_client.py` due to missing `akshare` library stubs
   - Lines 49, 122, 619: `Returning Any from function` - all `akshare` API calls return untyped results
 - `scripts/sync_stock_basic.py:7` - missing akshare stubs (same library issue)
-
-### [TODO] Documentation
-- Document new `/sync/*` endpoints
-- Document PostgreSQL schema
-- Update architecture diagram to show PostgreSQL as primary data source
 
 ---
 
@@ -100,12 +93,12 @@ cd src/backend && source .venv/bin/activate && mypy app/
 - [x] PeerComparison THS support
 
 ### Testing - ALL PASSING
-- [x] 174 backend tests pass (158 + 16 new screen API tests)
-- [x] All 27 integration tests pass (11 + 16 new)
-- [x] All 53 frontend tests pass
+- [x] 174 backend tests pass
+- [x] 53 frontend tests pass
+- [x] All integration tests pass
 - [x] Ruff lint passes on app/ and tests/
-- [x] All sync/industry/accounting tests pass
-- [x] All screen API tests pass (11 new screen endpoint + 5 save/delete tests)
+- [x] Frontend lint passes (warnings only)
+- [x] Frontend typecheck passes
 
 ### Schema Compliance - NOT DONE (low priority)
 - [ ] accounting_items schema fixes
