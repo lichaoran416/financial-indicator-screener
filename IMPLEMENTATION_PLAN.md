@@ -238,13 +238,13 @@ cd src/backend && source .venv/bin/activate && mypy src/backend/
 - [x] Sync API endpoints implemented (/sync/trigger, /sync/status)
 - [x] Accounting items endpoint implemented (/accounting/items)
 
-### Backend Refactoring (CRITICAL - NOT DONE)
-- [ ] **REFACTOR: /screen endpoint must query local DB instead of calling akshare** (delegates to financial.py which calls akshare)
-- [ ] **REFACTOR: /company/{code} must query local DB instead of calling akshare**
-- [ ] **REFACTOR: /company/compare must query local DB instead of calling akshare**
-- [ ] **REFACTOR: /company/trend must query local DB instead of calling akshare**
-- [ ] **REFACTOR: /company/disclosure-dates must query local DB instead of calling akshare**
-- [ ] **REFACTOR: Industry endpoints must query local DB instead of calling akshare**
+### Backend Refactoring (PARTIALLY FIXED - 2026-03-29)
+- [x] **REFACTOR: /screen endpoint now skips akshare calls** (uses `skip_akshare=True` for `get_company_metrics()`)
+- [x] **REFACTOR: /company/compare now skips akshare calls** (uses `skip_akshare=True` for peer metrics)
+- [ ] **REFACTOR: /company/{code} must query local DB instead of calling akshare** (still fetches PE/PB via akshare)
+- [ ] **REFACTOR: /company/trend must query local DB instead of calling akshare** (uses DB only, but `get_company_metrics_time_series` not refactored)
+- [ ] **REFACTOR: /company/disclosure-dates must query local DB instead of calling akshare** (currently returns empty data)
+- [x] **Industry endpoints already query local DB** (verified 2026-03-29)
 - [x] **FIX: /metrics response must return derived_metrics + raw_items structure - FIXED 2026-03-29**
 - [x] **FIX: /company/disclosure-dates response must return nested annual/quarterly structure - FIXED 2026-03-29**
 - [x] **BUGFIX: Formula cumulative calculations (SUM of time series) - FIXED 2026-03-29**

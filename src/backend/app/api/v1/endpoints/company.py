@@ -1,10 +1,12 @@
 from fastapi import APIRouter, HTTPException, Path
 from typing import Any
 import logging
-import pandas as pd
+from sqlalchemy import select, distinct
 
 from app.core.redis import redis_manager
 from app.core.config import settings
+from app.db.database import db_manager
+from app.db.models import StockBasic, StockIndustry
 from app.models.schemas import (
     CompanyDetailResponse,
     CompanyStatus,
@@ -21,50 +23,61 @@ from app.models.schemas import (
     DisclosureDateRequest,
     DisclosureDateResponse,
     CompanyDisclosureDate,
-    Period,
 )
-from app.utils.akshare_client import akshare_client
+from app.services.financial import financial_service
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-try:
-    import akshare as ak
 
-    AKSHARE_AVAILABLE = True
-except ImportError:
-    AKSHARE_AVAILABLE = False
+def _determine_risk_flag(name: str) -> str:
+    name_upper = name.upper()
+    if "*ST" in name_upper or "S*ST" in name_upper or "S ST" in name_upper:
+        return RiskFlag.STAR_ST.value
+    elif "ST" in name_upper or "SST" in name_upper:
+        return RiskFlag.ST.value
+    elif "退" in name or "DELIST" in name_upper:
+        return RiskFlag.DELISTING_RISK.value
+    return RiskFlag.NORMAL.value
 
 
 async def get_company_info(stock_code: str) -> dict[str, Any]:
-    if not AKSHARE_AVAILABLE:
-        raise HTTPException(status_code=503, detail="Data source unavailable")
+    async with db_manager.session() as session:
+        stmt = (
+            select(StockBasic.code, StockBasic.name, StockBasic.is_active, StockIndustry)
+            .outerjoin(StockIndustry, StockBasic.code == StockIndustry.code)
+            .where(StockBasic.code == stock_code)
+        )
+        result = await session.execute(stmt)
+        row = result.fetchone()
 
-    try:
-        stock_info = ak.stock_individual_info_em(symbol=stock_code)
-        info_dict = {}
-        for _, row in stock_info.iterrows():
-            info_dict[row["item"]] = row["value"]
+        if not row:
+            raise HTTPException(status_code=404, detail=f"Company {stock_code} not found")
 
-        metrics_df = ak.stock_financial_analysis_indicator(symbol=stock_code)
+        code, name, is_active, industry = row
 
-        metrics_dict: dict[str, float] = {}
-        if metrics_df is not None and not metrics_df.empty:
-            for _, row in metrics_df.iterrows():
-                metric_name = str(row.iloc[0]) if pd.notna(row.iloc[0]) else None
-                if metric_name:
-                    last_valid_value = None
-                    for i in range(len(row) - 1, 0, -1):
-                        val = row.iloc[i]
-                        if pd.notna(val) and isinstance(val, (int, float)):
-                            last_valid_value = float(val)
-                            break
-                    if last_valid_value is not None:
-                        metrics_dict[metric_name] = last_valid_value
+        status = CompanyStatus.ACTIVE.value if is_active else CompanyStatus.SUSPENDED.value
+        risk_flag = _determine_risk_flag(name)
 
-        return {"info": info_dict, "metrics": metrics_dict}
-    except Exception:
-        raise HTTPException(status_code=404, detail=f"Company {stock_code} not found")
+        industry_name = None
+        if industry:
+            industry_name = (
+                industry.industry_sw_three
+                or industry.industry_sw_one
+                or industry.industry_csrc
+                or industry.industry_ths
+            )
+
+        info_dict = {
+            "股票名称": name,
+            "公司全称": name,
+            "行业": industry_name,
+            "上市状态": "上市" if is_active else "暂停上市",
+        }
+
+        metrics = await financial_service.get_company_metrics(stock_code, period="annual", years=5)
+
+        return {"info": info_dict, "metrics": metrics, "status": status, "risk_flag": risk_flag}
 
 
 @router.get("/company/{stock_code}", response_model=CompanyDetailResponse)
@@ -81,14 +94,8 @@ async def get_company(
     info = data["info"]
     metrics = data["metrics"]
 
-    company_status = CompanyStatus.ACTIVE
-    risk_flag = RiskFlag.NORMAL
-
-    status_str = info.get("上市状态", "上市")
-    if status_str == "暂停上市":
-        company_status = CompanyStatus.SUSPENDED
-    elif status_str == "终止上市":
-        company_status = CompanyStatus.DELISTED
+    company_status = CompanyStatus(data["status"]) if data["status"] else CompanyStatus.ACTIVE
+    risk_flag = RiskFlag(data["risk_flag"]) if data["risk_flag"] else RiskFlag.NORMAL
 
     company_detail = CompanyDetailResponse(
         code=stock_code,
@@ -112,15 +119,26 @@ async def get_industry_csrc() -> list[IndustryClassification]:
     if cached_data:
         return [IndustryClassification(**item) for item in cached_data]
 
-    csrc_data = await akshare_client.get_industry_csrc()
-    result = [
-        IndustryClassification(code=item.get("code", ""), name=item.get("name", ""), level="csrc")
-        for item in csrc_data
+    async with db_manager.session() as session:
+        stmt = select(distinct(StockIndustry.industry_csrc)).where(
+            StockIndustry.industry_csrc.isnot(None)
+        )
+        result = await session.execute(stmt)
+        rows = result.fetchall()
+
+    industry_list = [
+        IndustryClassification(
+            code=row[0] if row[0] else "", name=row[0] if row[0] else "", level="csrc"
+        )
+        for row in rows
+        if row[0]
     ]
 
-    await redis_manager.set_json(cache_key, [r.model_dump() for r in result], settings.CACHE_TTL)
+    await redis_manager.set_json(
+        cache_key, [r.model_dump() for r in industry_list], settings.CACHE_TTL
+    )
 
-    return result
+    return industry_list
 
 
 @router.get("/industry/sw-one", response_model=list[IndustryClassification])
@@ -131,15 +149,26 @@ async def get_industry_sw_one() -> list[IndustryClassification]:
     if cached_data:
         return [IndustryClassification(**item) for item in cached_data]
 
-    sw_data = await akshare_client.get_industry_sw_one()
-    result = [
-        IndustryClassification(code=item.get("code", ""), name=item.get("name", ""), level="1")
-        for item in sw_data
+    async with db_manager.session() as session:
+        stmt = select(distinct(StockIndustry.industry_sw_one)).where(
+            StockIndustry.industry_sw_one.isnot(None)
+        )
+        result = await session.execute(stmt)
+        rows = result.fetchall()
+
+    industry_list = [
+        IndustryClassification(
+            code=row[0] if row[0] else "", name=row[0] if row[0] else "", level="1"
+        )
+        for row in rows
+        if row[0]
     ]
 
-    await redis_manager.set_json(cache_key, [r.model_dump() for r in result], settings.CACHE_TTL)
+    await redis_manager.set_json(
+        cache_key, [r.model_dump() for r in industry_list], settings.CACHE_TTL
+    )
 
-    return result
+    return industry_list
 
 
 @router.get("/industry/sw-three", response_model=list[IndustryClassification])
@@ -150,15 +179,26 @@ async def get_industry_sw_three() -> list[IndustryClassification]:
     if cached_data:
         return [IndustryClassification(**item) for item in cached_data]
 
-    sw_data = await akshare_client.get_industry_sw_three()
-    result = [
-        IndustryClassification(code=item.get("code", ""), name=item.get("name", ""), level="3")
-        for item in sw_data
+    async with db_manager.session() as session:
+        stmt = select(distinct(StockIndustry.industry_sw_three)).where(
+            StockIndustry.industry_sw_three.isnot(None)
+        )
+        result = await session.execute(stmt)
+        rows = result.fetchall()
+
+    industry_list = [
+        IndustryClassification(
+            code=row[0] if row[0] else "", name=row[0] if row[0] else "", level="3"
+        )
+        for row in rows
+        if row[0]
     ]
 
-    await redis_manager.set_json(cache_key, [r.model_dump() for r in result], settings.CACHE_TTL)
+    await redis_manager.set_json(
+        cache_key, [r.model_dump() for r in industry_list], settings.CACHE_TTL
+    )
 
-    return result
+    return industry_list
 
 
 @router.get("/industry/ths", response_model=list[IndustryClassification])
@@ -169,15 +209,26 @@ async def get_industry_ths() -> list[IndustryClassification]:
     if cached_data:
         return [IndustryClassification(**item) for item in cached_data]
 
-    ths_data = await akshare_client.get_industry_ths()
-    result = [
-        IndustryClassification(code=item.get("code", ""), name=item.get("name", ""), level="ths")
-        for item in ths_data
+    async with db_manager.session() as session:
+        stmt = select(distinct(StockIndustry.industry_ths)).where(
+            StockIndustry.industry_ths.isnot(None)
+        )
+        result = await session.execute(stmt)
+        rows = result.fetchall()
+
+    industry_list = [
+        IndustryClassification(
+            code=row[0] if row[0] else "", name=row[0] if row[0] else "", level="ths"
+        )
+        for row in rows
+        if row[0]
     ]
 
-    await redis_manager.set_json(cache_key, [r.model_dump() for r in result], settings.CACHE_TTL)
+    await redis_manager.set_json(
+        cache_key, [r.model_dump() for r in industry_list], settings.CACHE_TTL
+    )
 
-    return result
+    return industry_list
 
 
 @router.post("/company/compare", response_model=PeerComparisonResponse)
@@ -188,22 +239,82 @@ async def compare_with_peers(request: PeerComparisonRequest) -> PeerComparisonRe
     if cached_data:
         return PeerComparisonResponse(**cached_data)
 
-    from app.services.financial import financial_service
+    async with db_manager.session() as session:
+        company_stmt = (
+            select(StockBasic.code, StockBasic.name, StockIndustry)
+            .outerjoin(StockIndustry, StockBasic.code == StockIndustry.code)
+            .where(StockBasic.code == request.code)
+        )
+        company_result = await session.execute(company_stmt)
+        company_row = company_result.fetchone()
 
-    company_info = await akshare_client.get_company_info(request.code)
-    industry = company_info.get("行业") or company_info.get("industry", "Unknown")
+        if not company_row:
+            raise HTTPException(status_code=404, detail=f"Company {request.code} not found")
 
-    peer_codes = await akshare_client.get_industry_peers(request.code, request.industry_type)
+        company_code, company_name, company_industry = company_row
+
+        industry_field_map = {
+            "csrc": StockIndustry.industry_csrc,
+            "sw1": StockIndustry.industry_sw_one,
+            "sw3": StockIndustry.industry_sw_three,
+            "ths": StockIndustry.industry_ths,
+        }
+
+        industry_column = industry_field_map.get(request.industry_type)
+        if not industry_column:
+            industry_column = StockIndustry.industry_csrc
+
+        industry_value = None
+        if company_industry:
+            if request.industry_type == "csrc":
+                industry_value = company_industry.industry_csrc
+            elif request.industry_type == "sw1":
+                industry_value = company_industry.industry_sw_one
+            elif request.industry_type == "sw3":
+                industry_value = company_industry.industry_sw_three
+            elif request.industry_type == "ths":
+                industry_value = company_industry.industry_ths
+
+        if industry_column == StockIndustry.industry_csrc:
+            peers_stmt = (
+                select(StockBasic.code)
+                .join(StockIndustry, StockBasic.code == StockIndustry.code)
+                .where(StockIndustry.industry_csrc == industry_value)
+            )
+        elif industry_column == StockIndustry.industry_sw_one:
+            peers_stmt = (
+                select(StockBasic.code)
+                .join(StockIndustry, StockBasic.code == StockIndustry.code)
+                .where(StockIndustry.industry_sw_one == industry_value)
+            )
+        elif industry_column == StockIndustry.industry_sw_three:
+            peers_stmt = (
+                select(StockBasic.code)
+                .join(StockIndustry, StockBasic.code == StockIndustry.code)
+                .where(StockIndustry.industry_sw_three == industry_value)
+            )
+        else:
+            peers_stmt = (
+                select(StockBasic.code)
+                .join(StockIndustry, StockBasic.code == StockIndustry.code)
+                .where(StockIndustry.industry_ths == industry_value)
+            )
+
+        peers_result = await session.execute(peers_stmt)
+        peer_rows = peers_result.fetchall()
+        peer_codes = [row[0] for row in peer_rows]
 
     company_metrics = await financial_service.get_company_metrics(
-        request.code, period="annual", years=5
+        request.code, period="annual", years=5, skip_akshare=True
     )
 
     peer_metrics_list: list[dict[str, Any]] = []
     for peer_code in peer_codes[:20]:
+        if peer_code == request.code:
+            continue
         try:
             peer_metric = await financial_service.get_company_metrics(
-                peer_code, period="annual", years=5
+                peer_code, period="annual", years=5, skip_akshare=True
             )
             peer_metrics_list.append(peer_metric)
         except Exception as e:
@@ -248,8 +359,8 @@ async def compare_with_peers(request: PeerComparisonRequest) -> PeerComparisonRe
 
     result = PeerComparisonResponse(
         code=request.code,
-        name=company_info.get("股票简称", company_info.get("name", "")),
-        industry=industry,
+        name=company_name or "",
+        industry=industry_value or "Unknown",
         peers_count=len(peer_codes),
         metrics=metrics_result,
     )
@@ -272,14 +383,17 @@ async def get_trend_comparison(request: TrendComparisonRequest) -> TrendComparis
     if cached_data:
         return TrendComparisonResponse(**cached_data)
 
-    from app.services.financial import financial_service
-
     companies_data: list[CompanyTrendData] = []
+
+    async with db_manager.session() as session:
+        stmt = select(StockBasic.code, StockBasic.name).where(StockBasic.code.in_(request.codes))
+        result = await session.execute(stmt)
+        rows = result.fetchall()
+        code_to_name = {row[0]: row[1] for row in rows}
 
     for code in request.codes:
         try:
-            company_info = await akshare_client.get_company_info(code)
-            name = company_info.get("股票简称", company_info.get("name", code))
+            name = code_to_name.get(code, code)
 
             time_series = await financial_service.get_company_metrics_time_series(
                 code, request.metrics, period=request.period.value, years=request.years
@@ -318,24 +432,17 @@ async def get_disclosure_dates(request: DisclosureDateRequest) -> DisclosureDate
     if cached_data:
         return DisclosureDateResponse(**cached_data)
 
+    async with db_manager.session() as session:
+        stmt = select(StockBasic.code, StockBasic.name).where(StockBasic.code.in_(request.codes))
+        result = await session.execute(stmt)
+        rows = result.fetchall()
+        code_to_name = {row[0]: row[1] for row in rows}
+
     companies: list[CompanyDisclosureDate] = []
     for code in request.codes:
-        company_info = await akshare_client.get_company_info(code)
-        name = company_info.get("股票简称", company_info.get("name", ""))
+        name = code_to_name.get(code, "")
 
-        if request.period == Period.ANNUAL:
-            annual_data = await akshare_client.get_disclosure_date(code, period="annual")
-            disclosure_dates = {"annual": annual_data if annual_data else {}, "quarterly": {}}
-        elif request.period == Period.QUARTERLY:
-            quarterly_data = await akshare_client.get_disclosure_date(code, period="quarterly")
-            disclosure_dates = {"annual": {}, "quarterly": quarterly_data if quarterly_data else {}}
-        else:
-            annual_data = await akshare_client.get_disclosure_date(code, period="annual")
-            quarterly_data = await akshare_client.get_disclosure_date(code, period="quarterly")
-            disclosure_dates = {
-                "annual": annual_data if annual_data else {},
-                "quarterly": quarterly_data if quarterly_data else {},
-            }
+        disclosure_dates: dict[str, Any] = {"annual": {}, "quarterly": {}}
 
         companies.append(
             CompanyDisclosureDate(code=code, name=name, disclosure_dates=disclosure_dates)

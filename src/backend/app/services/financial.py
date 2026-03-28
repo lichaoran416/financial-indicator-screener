@@ -1,11 +1,23 @@
+from datetime import datetime
 from typing import Any, Optional, cast
-from app.utils.akshare_client import akshare_client
+import pandas as pd
+from sqlalchemy import select
+
+from app.db.database import db_manager
+from app.db.models import (
+    StockBasic,
+    StockIndustry,
+    FinancialIndicator,
+    AccountingData,
+    AccountingItem,
+)
 from app.core.redis import redis_manager
 from app.core.config import settings
 from app.models.schemas import Period, CompanyStatus, RiskFlag
 from app.utils.formula_parser import parse, validate, FormulaParserError
 from app.utils.formula_lexer import FormulaLexerError
 from app.utils.formula_evaluator import evaluate, FormulaEvaluatorError
+from app.utils.akshare_client import akshare_client
 
 
 class FinancialService:
@@ -80,33 +92,49 @@ class FinancialService:
         if cached:
             return cast(list[dict[str, Any]], cached)
 
-        stocks = await akshare_client.get_stock_list()
         result = []
-        for stock in stocks:
-            code = stock.get("code", stock.get("证券代码", ""))
-            name = stock.get("name", stock.get("证券名称", ""))
-            listing_status = stock.get("listing_status", "上市")
-            status = self._determine_status(listing_status)
-            risk_flag = self._determine_risk_flag(name)
-            result.append(
-                {
-                    "code": code,
-                    "name": name,
-                    "status": status,
-                    "risk_flag": risk_flag,
-                    "industry": stock.get("industry", None),
-                }
+        async with db_manager.session() as session:
+            stmt = (
+                select(StockBasic.code, StockBasic.name, StockBasic.is_active, StockIndustry)
+                .outerjoin(StockIndustry, StockBasic.code == StockIndustry.code)
+                .where(StockBasic.is_active.is_(True))
             )
+            db_result = await session.execute(stmt)
+            rows = db_result.fetchall()
+
+            for row in rows:
+                code, name, is_active, industry = row
+                status = CompanyStatus.ACTIVE.value if is_active else CompanyStatus.SUSPENDED.value
+                risk_flag = self._determine_risk_flag(name)
+
+                industry_name = None
+                if industry:
+                    industry_name = (
+                        industry.industry_sw_three
+                        or industry.industry_sw_one
+                        or industry.industry_csrc
+                        or industry.industry_ths
+                    )
+
+                result.append(
+                    {
+                        "code": code,
+                        "name": name,
+                        "status": status,
+                        "risk_flag": risk_flag,
+                        "industry": industry_name,
+                    }
+                )
 
         await redis_manager.set_json(cache_key, result, settings.CACHE_TTL)
         return result
 
     async def get_company_metrics(
-        self, code: str, period: str = "annual", years: int = 5
+        self, code: str, period: str = "annual", years: int = 5, skip_akshare: bool = False
     ) -> dict[str, Any]:
-        financial_data = await akshare_client.get_financial_data(code, period, years)
-        indicator_data = await akshare_client.get_financial_indicator(code, period, years)
-        price_data = await akshare_client.get_stock_price(code)
+        indicator_data = await self._get_financial_indicators_from_db(code, period, years)
+        financial_data = await self._get_financial_data_from_db(code, period, years)
+        price_data = await akshare_client.get_stock_price(code) if not skip_akshare else None
 
         metrics: dict[str, Any] = {}
         available_years = 0
@@ -146,7 +174,7 @@ class FinancialService:
         financial_metrics = self._extract_financial_metrics(financial_data, period)
         metrics.update(financial_metrics)
 
-        if price_data:
+        if price_data and not skip_akshare:
             market_cap = await akshare_client.get_market_capital(code)
             if market_cap:
                 metrics["market_cap"] = market_cap
@@ -169,6 +197,98 @@ class FinancialService:
 
         metrics["_available_years"] = available_years
         return metrics
+
+    async def _get_financial_data_from_db(
+        self, code: str, period: str = "annual", years: int = 5
+    ) -> dict[str, Any]:
+        """Get financial data (income statement and balance sheet) from local database.
+
+        Returns data in the format expected by _extract_financial_metrics():
+        {
+            "income": {col_name: [values], ...},
+            "balance": {col_name: [values], ...}
+        }
+        """
+        end_year = pd.Timestamp.now().year
+        start_date = datetime(end_year - years + 1, 1, 1)
+
+        async with db_manager.session() as session:
+            item_mapping_stmt = select(AccountingItem.code, AccountingItem.name)
+            item_result = await session.execute(item_mapping_stmt)
+            item_rows = item_result.fetchall()
+            item_code_to_name = {row[0]: row[1] for row in item_rows}
+
+        async with db_manager.session() as session:
+            report_types = ["profit", "balance"]
+            stmt = (
+                select(AccountingData)
+                .where(
+                    AccountingData.code == code,
+                    AccountingData.report_date >= start_date,
+                    AccountingData.report_type.in_(report_types),
+                )
+                .order_by(AccountingData.report_date.desc())
+            )
+            result = await session.execute(stmt)
+            records = result.scalars().all()
+
+        income_data: dict[str, list] = {}
+        balance_data: dict[str, list] = {}
+
+        for record in records:
+            item_name = item_code_to_name.get(record.item_code, record.item_code)
+            values_list = income_data if record.report_type == "profit" else balance_data
+            if item_name not in values_list:
+                values_list[item_name] = []
+            if record.item_value is not None and str(record.item_value) != "nan":
+                values_list[item_name].append(record.item_value)
+            else:
+                values_list[item_name].append(None)
+
+        return {"income": income_data, "balance": balance_data}
+
+    async def _get_financial_indicators_from_db(
+        self, code: str, period: str = "annual", years: int = 5
+    ) -> dict[str, Any]:
+        end_year = pd.Timestamp.now().year
+        start_date = datetime(end_year - years + 1, 1, 1)
+
+        async with db_manager.session() as session:
+            stmt = (
+                select(FinancialIndicator)
+                .where(
+                    FinancialIndicator.code == code,
+                    FinancialIndicator.report_date >= start_date,
+                )
+                .order_by(FinancialIndicator.report_date.desc())
+            )
+
+            result = await session.execute(stmt)
+            indicators = result.scalars().all()
+
+            if not indicators:
+                return {}
+
+            dates = [ind.report_date.strftime("%Y-%m-%d") for ind in indicators]
+            indicator_dict: dict[str, list] = {"_dates": dates}
+
+            for ind in indicators:
+                if ind.roe is not None:
+                    indicator_dict.setdefault("roe", []).append(ind.roe)
+                if ind.roic is not None:
+                    indicator_dict.setdefault("roic", []).append(ind.roic)
+                if ind.roi is not None:
+                    indicator_dict.setdefault("roi", []).append(ind.roi)
+                if ind.gross_profit_margin is not None:
+                    indicator_dict.setdefault("gross_profit_margin", []).append(
+                        ind.gross_profit_margin
+                    )
+                if ind.net_profit_growth is not None:
+                    indicator_dict.setdefault("net_profit_growth", []).append(ind.net_profit_growth)
+                if ind.revenue_growth is not None:
+                    indicator_dict.setdefault("revenue_growth", []).append(ind.revenue_growth)
+
+            return indicator_dict
 
     def _count_available_years(self, indicator_data: dict[str, Any], dates: list[str]) -> int:
         if not dates:
@@ -380,7 +500,9 @@ class FinancialService:
 
             period = conditions[0].get("period", "annual") if conditions else "annual"
             years = conditions[0].get("years", 5) if conditions else 5
-            metrics = await self.get_company_metrics(code, period=period, years=years)
+            metrics = await self.get_company_metrics(
+                code, period=period, years=years, skip_akshare=True
+            )
             company["metrics"] = metrics
             company["available_years"] = metrics.get("_available_years", 0)
 
@@ -651,7 +773,7 @@ class FinancialService:
     async def get_company_metrics_time_series(
         self, code: str, metrics: list[str], period: str = "annual", years: int = 5
     ) -> dict[str, list[tuple[str, float | None]]]:
-        indicator_data = await akshare_client.get_financial_indicator(code, period, years)
+        indicator_data = await self._get_financial_indicators_from_db(code, period, years)
 
         result: dict[str, list[tuple[str, float | None]]] = {}
 

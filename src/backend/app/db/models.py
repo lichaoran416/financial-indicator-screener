@@ -30,6 +30,7 @@ class StockBasic(Base):
 
     industries = relationship("StockIndustry", back_populates="stock", uselist=False)
     accounting_data = relationship("AccountingData", back_populates="stock")
+    financial_indicators = relationship("FinancialIndicator", back_populates="stock")
 
     __table_args__ = (
         Index("ix_stock_basic_market_type", "market_type"),
@@ -142,4 +143,36 @@ class IndustrySyncStatus(Base):
     __table_args__ = (
         UniqueConstraint("industry_sw_three", "sync_type", name="uq_industry_sync_status"),
         Index("ix_industry_sync_status_sync_type", "sync_type"),
+    )
+
+
+class FinancialIndicator(Base):
+    __tablename__ = "financial_indicators"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    code = Column(
+        String(10), ForeignKey("stock_basic.code", ondelete="CASCADE"), nullable=False, index=True
+    )
+    report_date = Column(DateTime, nullable=False, index=True)
+    roe = Column(Float, nullable=True, index=True)
+    roic = Column(Float, nullable=True, index=True)
+    roi = Column(Float, nullable=True, index=True)
+    gross_profit_margin = Column(Float, nullable=True, index=True)
+    net_profit_growth = Column(Float, nullable=True, index=True)
+    revenue_growth = Column(Float, nullable=True, index=True)
+    debt_ratio = Column(Float, nullable=True, index=True)
+    current_ratio = Column(Float, nullable=True, index=True)
+    quick_ratio = Column(Float, nullable=True, index=True)
+    eps = Column(Float, nullable=True)
+    bps = Column(Float, nullable=True)
+    operating_cash_flow_per_share = Column(Float, nullable=True)
+    net_margin = Column(Float, nullable=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    stock = relationship("StockBasic", back_populates="financial_indicators")
+
+    __table_args__ = (
+        Index("ix_financial_indicators_code_report", "code", "report_date"),
+        UniqueConstraint("code", "report_date", name="uq_financial_indicator_code_date"),
     )
