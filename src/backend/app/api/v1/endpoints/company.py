@@ -387,9 +387,9 @@ async def get_trend_comparison(request: TrendComparisonRequest) -> TrendComparis
 
     async with db_manager.session() as session:
         stmt = select(StockBasic.code, StockBasic.name).where(StockBasic.code.in_(request.codes))
-        result = await session.execute(stmt)
-        rows = result.fetchall()
-        code_to_name = {row[0]: row[1] for row in rows}
+        query_result = await session.execute(stmt)
+        query_rows = query_result.fetchall()
+        code_to_name = {row[0]: row[1] for row in query_rows}
 
     for code in request.codes:
         try:
@@ -413,15 +413,15 @@ async def get_trend_comparison(request: TrendComparisonRequest) -> TrendComparis
             logger.warning(f"Failed to get trend data for {code}: {e}")
             continue
 
-    result = TrendComparisonResponse(
+    trend_response = TrendComparisonResponse(
         companies=companies_data,
         period=request.period.value,
         years=request.years,
     )
 
-    await redis_manager.set_json(cache_key, result.model_dump(), settings.CACHE_TTL)
+    await redis_manager.set_json(cache_key, trend_response.model_dump(), settings.CACHE_TTL)
 
-    return result
+    return trend_response
 
 
 @router.post("/company/disclosure-dates", response_model=DisclosureDateResponse)
@@ -434,9 +434,9 @@ async def get_disclosure_dates(request: DisclosureDateRequest) -> DisclosureDate
 
     async with db_manager.session() as session:
         stmt = select(StockBasic.code, StockBasic.name).where(StockBasic.code.in_(request.codes))
-        result = await session.execute(stmt)
-        rows = result.fetchall()
-        code_to_name = {row[0]: row[1] for row in rows}
+        query_result = await session.execute(stmt)
+        query_rows = query_result.fetchall()
+        code_to_name = {row[0]: row[1] for row in query_rows}
 
     companies: list[CompanyDisclosureDate] = []
     for code in request.codes:
@@ -448,8 +448,8 @@ async def get_disclosure_dates(request: DisclosureDateRequest) -> DisclosureDate
             CompanyDisclosureDate(code=code, name=name, disclosure_dates=disclosure_dates)
         )
 
-    result = DisclosureDateResponse(companies=companies)
+    disclosure_response = DisclosureDateResponse(companies=companies)
 
-    await redis_manager.set_json(cache_key, result.model_dump(), settings.CACHE_TTL)
+    await redis_manager.set_json(cache_key, disclosure_response.model_dump(), settings.CACHE_TTL)
 
-    return result
+    return disclosure_response

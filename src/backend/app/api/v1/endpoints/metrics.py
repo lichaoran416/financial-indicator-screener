@@ -31,9 +31,11 @@ async def get_raw_accounting_items() -> list[RawAccountingItem]:
             for item in items:
                 raw_items.append(
                     RawAccountingItem(
-                        name=item.name,
-                        report_type=item.report_type or "unknown",
-                        category=item.category,
+                        name=str(item.name) if item.name is not None else "",
+                        report_type=str(item.report_type)
+                        if item.report_type is not None
+                        else "unknown",
+                        category=str(item.category) if item.category is not None else None,
                     )
                 )
     except Exception:

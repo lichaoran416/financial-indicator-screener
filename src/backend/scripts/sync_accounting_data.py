@@ -200,8 +200,8 @@ async def sync_all(force: bool = False) -> list[SyncResult]:
     await db_manager.init("postgresql+asyncpg://stock_user:stock_pass@localhost:5432/stock_db")
 
     async with db_manager.session() as session:
-        result = await session.execute(select(StockBasic.code).where(StockBasic.is_active))
-        codes = [row[0] for row in result.fetchall()]
+        query_result = await session.execute(select(StockBasic.code).where(StockBasic.is_active))
+        codes = [row[0] for row in query_result.fetchall()]
 
     logger.info(f"Starting accounting data sync for {len(codes)} stocks")
 
