@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter
 
 from app.models.schemas import MetricsListResponse, DerivedMetric, RawAccountingItem
@@ -7,6 +9,7 @@ from app.db.models import AccountingItem
 from sqlalchemy import select
 
 router = APIRouter()
+logger = logging.getLogger("api")
 
 
 def get_derived_metrics() -> list[DerivedMetric]:
@@ -38,7 +41,11 @@ async def get_raw_accounting_items() -> list[RawAccountingItem]:
                         category=str(item.category) if item.category is not None else None,
                     )
                 )
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"Error fetching raw accounting items: {e}",
+            extra={"type": "error", "error_type": type(e).__name__, "error_message": str(e)},
+        )
         raw_items = []
     return raw_items
 

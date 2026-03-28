@@ -1,3 +1,4 @@
+import logging
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
@@ -16,6 +17,7 @@ from app.db.schemas import (
 )
 
 router = APIRouter()
+logger = logging.getLogger("api")
 
 
 async def run_sync_task(sync_type: str, industry_sw_three: Optional[str] = None):
@@ -51,15 +53,22 @@ async def trigger_sync(request: SyncTriggerRequest, background_tasks: Background
 
     task_id = str(uuid.uuid4())
 
-    async with db_manager.session() as session:
-        history = SyncStatusHistory(
-            task_id=task_id,
-            sync_type=request.sync_type,
-            status="pending",
-            industry_sw_three=request.industry_sw_three,
-            started_at=datetime.now(timezone.utc),
+    try:
+        async with db_manager.session() as session:
+            history = SyncStatusHistory(
+                task_id=task_id,
+                sync_type=request.sync_type,
+                status="pending",
+                industry_sw_three=request.industry_sw_three,
+                started_at=datetime.now(timezone.utc),
+            )
+            session.add(history)
+    except Exception as e:
+        logger.error(
+            f"Error creating sync task record: {e}",
+            extra={"type": "error", "error_type": type(e).__name__, "error_message": str(e)},
         )
-        session.add(history)
+        raise HTTPException(status_code=500, detail=str(e))
 
     background_tasks.add_task(run_sync_task, request.sync_type, request.industry_sw_three)
 
@@ -72,18 +81,25 @@ async def trigger_sync(request: SyncTriggerRequest, background_tasks: Background
 
 @router.get("/sync/status", response_model=SyncStatusResponse)
 async def get_sync_status(industry_sw_three: Optional[str] = None):
-    async with db_manager.session() as session:
-        stmt = select(SyncStatusHistory).order_by(desc(SyncStatusHistory.started_at))
-        result = await session.execute(stmt)
-        all_tasks = result.scalars().all()
+    try:
+        async with db_manager.session() as session:
+            stmt = select(SyncStatusHistory).order_by(desc(SyncStatusHistory.started_at))
+            result = await session.execute(stmt)
+            all_tasks = result.scalars().all()
 
-        stmt_industry = select(IndustrySyncStatus)
-        if industry_sw_three:
-            stmt_industry = stmt_industry.where(
-                IndustrySyncStatus.industry_sw_three == industry_sw_three
-            )
-        result_industry = await session.execute(stmt_industry)
-        result_industry.scalars().all()
+            stmt_industry = select(IndustrySyncStatus)
+            if industry_sw_three:
+                stmt_industry = stmt_industry.where(
+                    IndustrySyncStatus.industry_sw_three == industry_sw_three
+                )
+            result_industry = await session.execute(stmt_industry)
+            result_industry.scalars().all()
+    except Exception as e:
+        logger.error(
+            f"Error fetching sync status: {e}",
+            extra={"type": "error", "error_type": type(e).__name__, "error_message": str(e)},
+        )
+        raise HTTPException(status_code=500, detail=str(e))
 
     last_sync = LastSync()
 

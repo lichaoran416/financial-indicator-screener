@@ -5,6 +5,7 @@ from typing import List
 from fastapi import APIRouter, HTTPException
 
 from app.core.config import settings
+from app.core.logging import log_error
 from app.core.redis import redis_manager
 from app.models.schemas import (
     Condition,
@@ -91,6 +92,7 @@ async def screen_companies_endpoint(request: ScreenRequest) -> ScreenResponse:
         )
         return ScreenResponse(companies=companies, total=total)
     except Exception as e:
+        log_error(e, context="screen_companies_endpoint")
         raise HTTPException(status_code=500, detail=str(e))
 
 

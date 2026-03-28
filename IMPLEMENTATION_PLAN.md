@@ -10,7 +10,13 @@ A stock analysis tool for A-share market that screens/ranks companies using cust
 - All integration tests pass
 - Backend lint and frontend lint/typecheck all pass
 - Working tree clean
-- **Git tag v0.9.16 created** (2026-03-29)
+- **Git tag v0.9.17 created** (2026-03-29)
+- **FIX (2026-03-29)**: Added proper error logging to all backend API endpoints
+  - screen.py: `screen_companies_endpoint` now logs errors before raising HTTPException
+  - metrics.py: `get_raw_accounting_items` now logs DB errors instead of silently catching
+  - cache.py: `refresh_cache` now logs errors before raising HTTPException
+  - sync.py: `trigger_sync` and `get_sync_status` now log DB errors
+  - accounting.py: `get_accounting_items` now logs DB errors before raising HTTPException
 - **CRITICAL FIX (2026-03-29)**: Fixed async context manager mocking in `tests/integration/test_sync_api.py`
   - Fixed `mock_db_manager.session()` to use `PropertyMock` for proper async context manager support
   - Fixed `mock_db_session.execute` to be `AsyncMock` so `await session.execute()` works
@@ -88,6 +94,7 @@ cd src/backend && source .venv/bin/activate && mypy app/
 | Accounting API endpoint | ✅ |
 | Frontend components and stores | ✅ |
 | Request logging middleware | ✅ |
+| Error logging for all API endpoints | ✅ |
 
 ---
 
