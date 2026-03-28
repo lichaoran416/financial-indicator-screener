@@ -5,9 +5,10 @@
 A stock analysis tool for A-share market that screens/ranks companies using custom financial metrics with multi-timeframe conditions, industry comparison, and visualization.
 
 **Current State (2026-03-29)**:
-- 158 backend tests pass, all integration tests pass (was 152 tests, 6 integration tests failing)
+- 174 backend tests pass (158 + 16 new screen API integration tests)
+- All integration tests pass
 - Backend lint and frontend lint/typecheck all pass
-- Working tree has changes
+- Working tree has changes (new screen API integration tests)
 - **CRITICAL FIX (2026-03-29)**: Fixed async context manager mocking in `tests/integration/test_sync_api.py`
   - Fixed `mock_db_manager.session()` to use `PropertyMock` for proper async context manager support
   - Fixed `mock_db_session.execute` to be `AsyncMock` so `await session.execute()` works
@@ -36,7 +37,7 @@ Low priority - minor discrepancies in `src/backend/app/db/models.py`:
 ### [TODO] Backend Test Coverage
 - [x] Add tests for `POST /sync/trigger` and `GET /sync/status` endpoints - DONE
 - [x] Add tests for `GET /accounting/items` endpoint - DONE
-- [ ] Update `POST /screen` tests to use mock DB instead of direct akshare calls
+- [x] Update `POST /screen` tests to use mock DB instead of direct akshare calls - DONE (16 new integration tests)
 
 ### [TODO] Backend Lint Issues
 ```bash
@@ -99,15 +100,12 @@ cd src/backend && source .venv/bin/activate && mypy app/
 - [x] PeerComparison THS support
 
 ### Testing - ALL PASSING
-- [x] 158 backend tests pass (was 152)
-- [x] All 11 integration tests pass (was 6 failing)
-  - `test_get_sync_status_empty` - FIXED with PropertyMock for session
-  - `test_get_sync_status_with_industry_filter` - FIXED
-  - `test_get_accounting_items_*` (4 tests) - FIXED with PropertyMock and AsyncMock execute
-- [x] All 53 frontend tests pass (verified previously)
+- [x] 174 backend tests pass (158 + 16 new screen API tests)
+- [x] All 27 integration tests pass (11 + 16 new)
+- [x] All 53 frontend tests pass
 - [x] Ruff lint passes on app/ and tests/
-- [x] All 7 sync API tests pass
-- [x] All 4 accounting items tests pass
+- [x] All sync/industry/accounting tests pass
+- [x] All screen API tests pass (11 new screen endpoint + 5 save/delete tests)
 
 ### Schema Compliance - NOT DONE (low priority)
 - [ ] accounting_items schema fixes
