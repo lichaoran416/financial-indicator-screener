@@ -11,8 +11,6 @@ from app.db.schemas import (
     SyncTriggerRequest,
     SyncTriggerResponse,
     SyncStatusResponse,
-    SyncStatusHistorySchema,
-    IndustrySyncStatusSchema,
     LastSync,
     LastSyncDetail,
 )
@@ -85,7 +83,7 @@ async def get_sync_status(industry_sw_three: Optional[str] = None):
                 IndustrySyncStatus.industry_sw_three == industry_sw_three
             )
         result_industry = await session.execute(stmt_industry)
-        industries = result_industry.scalars().all()
+        result_industry.scalars().all()
 
     last_sync = LastSync()
 
@@ -99,12 +97,12 @@ async def get_sync_status(industry_sw_three: Optional[str] = None):
         industry_updates: dict[str, datetime] = {}
         for ind_task in type_tasks:
             if ind_task.industry_sw_three and ind_task.finished_at:
-                industry_updates[ind_task.industry_sw_three] = ind_task.finished_at
+                industry_updates[ind_task.industry_sw_three] = ind_task.finished_at  # type: ignore[assignment,index]
 
         detail = LastSyncDetail(
-            status=latest_task.status,
-            records_synced=latest_task.processed_count,
-            last_updated=latest_task.finished_at,
+            status=latest_task.status,  # type: ignore[arg-type]
+            records_synced=latest_task.processed_count,  # type: ignore[arg-type]
+            last_updated=latest_task.finished_at,  # type: ignore[arg-type]
             current_code=None,
             last_updated_by_industry=industry_updates if industry_updates else None,
         )

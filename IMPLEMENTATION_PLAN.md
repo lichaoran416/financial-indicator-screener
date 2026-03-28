@@ -178,17 +178,20 @@ These are low priority but should be fixed for schema compliance.
 - Update `POST /screen` tests to use mock DB instead of direct akshare calls
 - Increase API endpoint test coverage
 
-### [IN PROGRESS] Fix Lint Issues (PARTIALLY FIXED)
+### [IN PROGRESS] Fix Lint Issues (MOSTLY FIXED)
 ```bash
-cd src/backend && source .venv/bin/activate && ruff check src/backend/
+cd src/backend && source .venv/bin/activate && ruff check app/ tests/
 ```
 **Issues found**:
 - [x] `tests/conftest.py:2` - `MagicMock` unused - FIXED 2026-03-29
+- [x] `app/api/v1/endpoints/sync.py:14` - `SyncStatusHistorySchema` imported but unused - FIXED 2026-03-29
+- [x] `app/api/v1/endpoints/sync.py:15` - `IndustrySyncStatusSchema` imported but unused - FIXED 2026-03-29
+- [x] `app/api/v1/endpoints/sync.py:88` - `industries` variable assigned but never used - FIXED 2026-03-29
 - [ ] `tests/integration/test_formula_api.py:3,4` - `MagicMock`, `datetime` unused
 - [ ] `tests/unit/test_services/test_financial.py:2` - `AsyncMock` unused (likely needed for fixtures)
 - [ ] `tests/unit/test_services/test_formula_service.py:2` - `AsyncMock` unused (likely needed for fixtures)
 
-**Note**: The AsyncMock imports may be needed for fixtures that use AsyncMock. Need to verify if they are truly unused.
+**Note**: The AsyncMock imports may be needed for fixtures that use AsyncMock. Need to verify if they are truly unused. Ruff now passes on `app/` and `tests/`.
 
 ### [TODO] Fix Type Issues (VERIFIED)
 ```bash
@@ -290,8 +293,8 @@ cd src/backend && source .venv/bin/activate && mypy src/backend/
 - [ ] Accounting items endpoint tests
 - [ ] DB-based screen tests
 - [ ] Formula cumulative calculation tests
-- [x] Ruff lint issues fixed (verified passing)
-- [x] Mypy type errors fixed (app/ company.py, metrics.py - FIXED 2026-03-29)
+- [x] Ruff lint issues fixed (verified passing on app/ and tests/)
+- [x] Mypy type errors fixed (app/ company.py, metrics.py, sync.py - FIXED 2026-03-29)
   - Remaining: library stub issues (akshare, pandas) and checkpoint.py Returning Any
 
 ---
