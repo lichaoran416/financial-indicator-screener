@@ -75,3 +75,8 @@ export const deleteSavedScreen = async (screenId: string): Promise<boolean> => {
   const response = await apiClient.delete<{ deleted: boolean }>(`/screen/saved/${screenId}`);
   return response.data.deleted;
 };
+
+export const refreshCache = async (): Promise<{ status: string; message: string }> => {
+  const response = await apiClient.post<{ status: string; message: string }>("/cache/refresh");
+  return response.data;
+};

@@ -35,12 +35,12 @@ This application aims to be a stock analysis tool for A-share market that helps 
    - Current: `get_companies_from_financial_service()` delegates to `financial_service.screen_companies()` which calls akshare
    - Fix: After refactoring financial.py, this will automatically use local DB (verified: screen.py does NOT call akshare directly, only delegates to financial.py)
 
-### [CRITICAL] Fix /metrics Response Schema
+### [FIXED] Fix /metrics Response Schema
 **Location**: `src/backend/app/api/v1/endpoints/metrics.py` + `src/backend/app/models/schemas.py`
 
-**Current**: Returns `{"metrics": [{"id": "...", "name": "...", "category": "..."}]}`
+**Status**: FIXED 2026-03-29
 
-**Spec requires** (specs/05_backend.md lines 116-127):
+**Spec requires** (specs/05_backend.md):
 ```json
 {
   "derived_metrics": [
@@ -52,23 +52,26 @@ This application aims to be a stock analysis tool for A-share market that helps 
 }
 ```
 
-**Changes needed**:
-- Add `RawAccountingItem` schema with `name`, `report_type`, `category`
-- Add `MetricsListResponse` with `derived_metrics` and `raw_items` fields
-- Modify `get_metrics()` to query `accounting_items` table for raw_items
-- Add `formula` field to derived metrics (exists in METRIC_DEFINITIONS but not returned)
+**Changes applied**:
+- Added `DerivedMetric` schema with `id`, `name`, `category`, `formula` fields
+- Added `RawAccountingItem` schema with `name`, `report_type`, `category` fields
+- Updated `MetricsListResponse` to use `derived_metrics` and `raw_items` fields
+- `get_metrics()` queries `accounting_items` table for raw_items via `get_raw_accounting_items()`
 
-### [CRITICAL] Fix /company/disclosure-dates Response Schema
+### [FIXED] Fix /company/disclosure-dates Response Schema
 **Location**: `src/backend/app/api/v1/endpoints/company.py:312-329` + `schemas.py:209-225`
 
-**Current**: Returns flat `disclosure_dates` list with single `disclosure_date` field per company
+**Status**: FIXED 2026-03-29
 
-**Spec requires** (specs/05_backend.md lines 93-110): Nested structure with `companies[].disclosure_dates.annual{year{report_date, disclosure_date}}` and `quarterly`
+**Spec requires** (specs/05_backend.md): Nested structure with `companies[].disclosure_dates.annual{year{report_date, disclosure_date}}` and `quarterly`
 
-**Changes needed**:
-- Add proper nested schemas for `AnnualDisclosure` and `QuarterlyDisclosure`
-- Modify `CompanyDisclosureDate` and `DisclosureDateResponse`
-- Add quarterly disclosure support (currently only annual)
+**Changes applied**:
+- Added `AnnualDisclosure` schema with `report_date` and `disclosure_date` fields
+- Added `QuarterlyDisclosure` schema with `report_date` and `disclosure_date` fields
+- Updated `CompanyDisclosureDate` to include `name` and nested `disclosure_dates` with `annual` and `quarterly`
+- Updated `DisclosureDateResponse` to use `companies` instead of `disclosure_dates`
+- Added `period` parameter to `DisclosureDateRequest` (supports annual, quarterly, ttm)
+- Updated endpoint to build proper nested response structure
 
 ### [FIXED] Formula Engine Cumulative Calculation Bug
 **Location**: `src/backend/app/utils/formula_evaluator.py` - evaluate() BINARY_OP case
@@ -87,29 +90,33 @@ This application aims to be a stock analysis tool for A-share market that helps 
 
 ## Priority 2: Frontend Gaps
 
-### [TODO] Missing API Client Functions (VERIFIED MISSING)
+### [FIXED] Missing API Client Functions
 **Location**: `src/frontend/src/api/`
 
 | Function | File | Status |
 |----------|------|--------|
-| `refreshCache()` | `screen.ts` | MISSING - need POST /cache/refresh |
-| `getCompanyTrend(codes, metrics, period, years)` | `company.ts` | MISSING - need POST /company/trend |
-| `getTHSIndustries()` | `company.ts` | MISSING - need GET /industry/ths |
-| `getAccountingItems(report_type?)` | `accounting.ts` | MISSING FILE |
-| `updateFormula(id, data)` | `formula.ts` | MISSING - backend has PUT /formula/{id} |
+| `refreshCache()` | `screen.ts` | FIXED 2026-03-29 - POST /cache/refresh |
+| `getCompanyTrend(codes, metrics, period, years)` | `company.ts` | FIXED 2026-03-29 - POST /company/trend |
+| `getTHSIndustries()` | `company.ts` | FIXED 2026-03-29 - GET /industry/ths |
+| `getAccountingItems(report_type?)` | `accounting.ts` | FIXED 2026-03-29 - NEW FILE created |
+| `updateFormula(id, data)` | `formula.ts` | FIXED 2026-03-29 - PUT /formula/{id} |
 
-### [TODO] PeerComparison THS Industry Support (VERIFIED MISSING)
+### [FIXED] PeerComparison THS Industry Support
 **Location**: `src/frontend/src/components/comparison/PeerComparison.tsx`
 
-- Add `'ths'` to `IndustryType` union in `types.ts` (currently only `csrc | sw1 | sw3`)
-- Add `ths: 'THS行业'` to `industryTypeLabels` object
-- Import and call `getTHSIndustries()` API function
+**Status**: FIXED 2026-03-29
+
+**Changes applied**:
+- Added `'ths'` to `IndustryType` union in `types.ts`
+- Added `ths: 'THS行业'` to `industryTypeLabels` object
+- Updated `fetchIndustries()` to handle 'ths' type by calling `getTHSIndustries()`
 
 ### [TODO] stores/syncStore.ts (VERIFIED MISSING)
 **Location**: `src/frontend/src/stores/syncStore.ts`
 
 - Create Zustand store for sync state management
 - Currently SyncManagementPage uses local state only
+- Note: The component works with local state, this is a refactoring enhancement
 
 ### [TODO] src/lib/ Shared Utilities (VERIFIED EMPTY)
 **Location**: `src/lib/` (project root - currently empty)
@@ -238,8 +245,8 @@ cd src/backend && source .venv/bin/activate && mypy src/backend/
 - [ ] **REFACTOR: /company/trend must query local DB instead of calling akshare**
 - [ ] **REFACTOR: /company/disclosure-dates must query local DB instead of calling akshare**
 - [ ] **REFACTOR: Industry endpoints must query local DB instead of calling akshare**
-- [ ] **FIX: /metrics response must return derived_metrics + raw_items structure**
-- [ ] **FIX: /company/disclosure-dates response must return nested annual/quarterly structure**
+- [x] **FIX: /metrics response must return derived_metrics + raw_items structure - FIXED 2026-03-29**
+- [x] **FIX: /company/disclosure-dates response must return nested annual/quarterly structure - FIXED 2026-03-29**
 - [x] **BUGFIX: Formula cumulative calculations (SUM of time series) - FIXED 2026-03-29**
 
 ### Sync Endpoints
@@ -249,18 +256,18 @@ cd src/backend && source .venv/bin/activate && mypy src/backend/
 ### Frontend
 - [x] SyncManagementPage implemented
 - [x] api/sync.ts implemented
-- [ ] syncStore.ts implemented (MISSING)
-- [ ] getCompanyTrend() in company.ts (MISSING)
-- [ ] getTHSIndustries() in company.ts (MISSING)
-- [ ] refreshCache() in screen.ts (MISSING)
-- [ ] updateFormula() in formula.ts (MISSING)
-- [ ] getAccountingItems() in accounting.ts (MISSING - NEW FILE)
-- [ ] src/lib/ contents created at project root (EMPTY)
-- [ ] PeerComparison.tsx THS support (MISSING)
+- [ ] syncStore.ts implemented (MISSING - not critical, component works with local state)
+- [x] getCompanyTrend() in company.ts - FIXED 2026-03-29
+- [x] getTHSIndustries() in company.ts - FIXED 2026-03-29
+- [x] refreshCache() in screen.ts - FIXED 2026-03-29
+- [x] updateFormula() in formula.ts - FIXED 2026-03-29
+- [x] getAccountingItems() in accounting.ts - FIXED 2026-03-29 (NEW FILE)
+- [ ] src/lib/ contents created at project root (EMPTY - not critical)
+- [x] PeerComparison.tsx THS support - FIXED 2026-03-29
 
 ### Schema Updates
-- [ ] /metrics response matches spec (derived_metrics + raw_items)
-- [ ] /company/disclosure-dates response matches spec (nested structure)
+- [x] /metrics response matches spec (derived_metrics + raw_items) - FIXED 2026-03-29
+- [x] /company/disclosure-dates response matches spec (nested structure) - FIXED 2026-03-29
 - [ ] Formula Pydantic schemas verified complete
 
 ### Database Schema Compliance
@@ -273,7 +280,7 @@ cd src/backend && source .venv/bin/activate && mypy src/backend/
 - [ ] Accounting items endpoint tests
 - [ ] DB-based screen tests
 - [ ] Formula cumulative calculation tests
-- [ ] Ruff lint issues fixed (5 unused imports)
+- [x] Ruff lint issues fixed (verified passing)
 - [ ] Mypy type errors fixed (pandas stubs, Returning Any)
 
 ---

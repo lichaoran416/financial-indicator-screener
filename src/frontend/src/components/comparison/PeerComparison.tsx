@@ -1,5 +1,5 @@
 import { Component, createSignal, createEffect, Show, For } from 'solid-js';
-import { getPeerComparison, getCSRCIndustries, getSWIndustries, type PeerComparisonRequest } from '../../api/company';
+import { getPeerComparison, getCSRCIndustries, getSWIndustries, getTHSIndustries, type PeerComparisonRequest } from '../../api/company';
 import type { PeerComparisonResponse, IndustryType, PeerMetric } from '../../lib/types';
 import { LoadingSpinner } from '../common';
 import { RadarChart } from '../visualization/RadarChart';
@@ -14,6 +14,7 @@ const industryTypeLabels: Record<IndustryType, string> = {
   csrc: '证监会行业',
   sw1: '申万一级行业',
   sw3: '申万三级行业',
+  ths: 'THS行业',
 };
 
 const defaultMetrics = ['roe', 'roa', 'gross_margin', 'net_profit_margin', 'debt_ratio'];
@@ -29,6 +30,8 @@ export const PeerComparison: Component<PeerComparisonProps> = (props) => {
     try {
       if (type === 'csrc') {
         await getCSRCIndustries();
+      } else if (type === 'ths') {
+        await getTHSIndustries();
       } else {
         await getSWIndustries(type === 'sw1' ? 1 : 3);
       }

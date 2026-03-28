@@ -1,7 +1,6 @@
 import pytest
 from httpx import AsyncClient, ASGITransport
-from unittest.mock import patch, AsyncMock, MagicMock
-from datetime import datetime
+from unittest.mock import patch, AsyncMock
 
 from main import app
 from app.core.redis import RedisManager

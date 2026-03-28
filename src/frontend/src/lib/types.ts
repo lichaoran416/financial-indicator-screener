@@ -51,4 +51,4 @@ export interface PeerComparisonResponse {
   metrics: PeerMetric[];
 }
 
-export type IndustryType = 'csrc' | 'sw1' | 'sw3';
+export type IndustryType = 'csrc' | 'sw1' | 'sw3' | 'ths';

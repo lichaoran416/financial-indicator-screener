@@ -21,6 +21,7 @@ from app.models.schemas import (
     DisclosureDateRequest,
     DisclosureDateResponse,
     CompanyDisclosureDate,
+    Period,
 )
 from app.utils.akshare_client import akshare_client
 
@@ -311,18 +312,36 @@ async def get_trend_comparison(request: TrendComparisonRequest) -> TrendComparis
 
 @router.post("/company/disclosure-dates", response_model=DisclosureDateResponse)
 async def get_disclosure_dates(request: DisclosureDateRequest) -> DisclosureDateResponse:
-    cache_key = f"disclosure:{','.join(sorted(request.codes))}"
+    cache_key = f"disclosure:{','.join(sorted(request.codes))}:{request.period.value}"
 
     cached_data = await redis_manager.get_json(cache_key)
     if cached_data:
         return DisclosureDateResponse(**cached_data)
 
-    disclosure_dates: list[CompanyDisclosureDate] = []
+    companies: list[CompanyDisclosureDate] = []
     for code in request.codes:
-        disclosure_date = await akshare_client.get_disclosure_date(code, period="annual")
-        disclosure_dates.append(CompanyDisclosureDate(code=code, disclosure_date=disclosure_date))
+        company_info = await akshare_client.get_company_info(code)
+        name = company_info.get("股票简称", company_info.get("name", ""))
 
-    result = DisclosureDateResponse(disclosure_dates=disclosure_dates)
+        if request.period == Period.ANNUAL:
+            annual_data = await akshare_client.get_disclosure_date(code, period="annual")
+            disclosure_dates = {"annual": annual_data if annual_data else {}, "quarterly": {}}
+        elif request.period == Period.QUARTERLY:
+            quarterly_data = await akshare_client.get_disclosure_date(code, period="quarterly")
+            disclosure_dates = {"annual": {}, "quarterly": quarterly_data if quarterly_data else {}}
+        else:
+            annual_data = await akshare_client.get_disclosure_date(code, period="annual")
+            quarterly_data = await akshare_client.get_disclosure_date(code, period="quarterly")
+            disclosure_dates = {
+                "annual": annual_data if annual_data else {},
+                "quarterly": quarterly_data if quarterly_data else {},
+            }
+
+        companies.append(
+            CompanyDisclosureDate(code=code, name=name, disclosure_dates=disclosure_dates)
+        )
+
+    result = DisclosureDateResponse(companies=companies)
 
     await redis_manager.set_json(cache_key, result.model_dump(), settings.CACHE_TTL)
 

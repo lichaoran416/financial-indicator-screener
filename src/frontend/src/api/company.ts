@@ -45,18 +45,76 @@ export const getPeerComparison = async (
 
 export interface DisclosureDateRequest {
   codes: string[];
+  period?: "annual" | "quarterly" | "ttm";
+}
+
+export interface AnnualDisclosure {
+  report_date?: string;
+  disclosure_date?: string;
+}
+
+export interface QuarterlyDisclosure {
+  report_date?: string;
+  disclosure_date?: string;
+}
+
+export interface CompanyDisclosureDate {
+  code: string;
+  name?: string;
+  disclosure_dates: {
+    annual?: Record<string, AnnualDisclosure>;
+    quarterly?: Record<string, QuarterlyDisclosure>;
+  };
 }
 
 export interface DisclosureDateResponse {
-  disclosure_dates: Array<{
-    code: string;
-    disclosure_date?: string;
-  }>;
+  companies: CompanyDisclosureDate[];
 }
 
 export const getDisclosureDates = async (
-  codes: string[]
+  request: DisclosureDateRequest
 ): Promise<DisclosureDateResponse> => {
-  const response = await apiClient.post<DisclosureDateResponse>("/company/disclosure-dates", { codes });
+  const response = await apiClient.post<DisclosureDateResponse>("/company/disclosure-dates", request);
+  return response.data;
+};
+
+export const getTHSIndustries = async (): Promise<IndustryClassification[]> => {
+  const response = await apiClient.get<IndustryClassification[]>("/industry/ths");
+  return response.data;
+};
+
+export interface TrendComparisonRequest {
+  codes: string[];
+  metrics: string[];
+  period?: "annual" | "quarterly" | "ttm";
+  years?: number;
+}
+
+export interface MetricTrendPoint {
+  date: string;
+  value: number | null;
+}
+
+export interface MetricTrendData {
+  metric: string;
+  data: MetricTrendPoint[];
+}
+
+export interface CompanyTrendData {
+  code: string;
+  name: string;
+  trends: MetricTrendData[];
+}
+
+export interface TrendComparisonResponse {
+  companies: CompanyTrendData[];
+  period: string;
+  years: number;
+}
+
+export const getCompanyTrend = async (
+  request: TrendComparisonRequest
+): Promise<TrendComparisonResponse> => {
+  const response = await apiClient.post<TrendComparisonResponse>("/company/trend", request);
   return response.data;
 };

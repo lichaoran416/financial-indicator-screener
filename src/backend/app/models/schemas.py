@@ -1,6 +1,6 @@
 from enum import Enum
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 from pydantic import BaseModel, Field
 
 
@@ -109,8 +109,26 @@ class MetricInfo(BaseModel):
     category: str = Field(..., description="Metric category")
 
 
+class DerivedMetric(BaseModel):
+    id: str = Field(..., description="Metric identifier")
+    name: str = Field(..., description="Metric display name")
+    category: str = Field(..., description="Metric category")
+    formula: Optional[str] = Field(default=None, description="Calculation formula")
+
+
+class RawAccountingItem(BaseModel):
+    name: str = Field(..., description="Accounting item name")
+    report_type: str = Field(..., description="Report type: profit, balance, cashflow")
+    category: Optional[str] = Field(default=None, description="Item category")
+
+
 class MetricsListResponse(BaseModel):
-    metrics: list[MetricInfo] = Field(default_factory=list, description="List of available metrics")
+    derived_metrics: list[DerivedMetric] = Field(
+        default_factory=list, description="Derived financial metrics with formulas"
+    )
+    raw_items: list[RawAccountingItem] = Field(
+        default_factory=list, description="Raw accounting items from financial statements"
+    )
 
 
 class SaveScreenRequest(BaseModel):
@@ -210,16 +228,28 @@ class DisclosureDateRequest(BaseModel):
     codes: list[str] = Field(
         ..., min_length=1, max_length=10, description="List of stock codes (1-10 companies)"
     )
+    period: Period = Field(default=Period.ANNUAL, description="Data period type")
+
+
+class AnnualDisclosure(BaseModel):
+    report_date: Optional[str] = Field(default=None, description="Report date (YYYY-MM-DD)")
+    disclosure_date: Optional[str] = Field(default=None, description="Disclosure date (YYYY-MM-DD)")
+
+
+class QuarterlyDisclosure(BaseModel):
+    report_date: Optional[str] = Field(default=None, description="Report date (YYYY-MM-DD)")
+    disclosure_date: Optional[str] = Field(default=None, description="Disclosure date (YYYY-MM-DD)")
 
 
 class CompanyDisclosureDate(BaseModel):
     code: str = Field(..., description="Stock code")
-    disclosure_date: Optional[str] = Field(
-        default=None, description="Actual disclosure date (YYYY-MM-DD)"
+    name: Optional[str] = Field(default=None, description="Company name")
+    disclosure_dates: dict[str, Any] = Field(
+        default_factory=dict, description="Disclosure dates with annual and quarterly breakdown"
     )
 
 
 class DisclosureDateResponse(BaseModel):
-    disclosure_dates: list[CompanyDisclosureDate] = Field(
+    companies: list[CompanyDisclosureDate] = Field(
         default_factory=list, description="Disclosure dates for each company"
     )

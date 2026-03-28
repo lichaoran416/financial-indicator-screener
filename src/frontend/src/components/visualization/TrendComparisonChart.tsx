@@ -146,11 +146,15 @@ export const TrendComparisonChart: Component<TrendComparisonChartProps> = (props
 
       setTrendData(response.data);
 
-      const disclosureResponse = await getDisclosureDates(codes);
+      const disclosureResponse = await getDisclosureDates({ codes });
       const datesMap: Record<string, string> = {};
-      disclosureResponse.disclosure_dates.forEach((item) => {
-        if (item.disclosure_date) {
-          datesMap[item.code] = item.disclosure_date;
+      disclosureResponse.companies.forEach((item) => {
+        const annualData = item.disclosure_dates?.annual;
+        if (annualData) {
+          const latestYear = Object.keys(annualData).sort().pop();
+          if (latestYear && annualData[latestYear]?.disclosure_date) {
+            datesMap[item.code] = annualData[latestYear].disclosure_date;
+          }
         }
       });
       setDisclosureDates(datesMap);

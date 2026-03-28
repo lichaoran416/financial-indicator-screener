@@ -1,11 +1,10 @@
-import pytest
 from app.services.financial import FinancialService
 
 
 class TestYearsParameter:
     def test_years_passed_to_get_company_metrics(self, sample_company_data, mock_redis):
         service = FinancialService()
-        from unittest.mock import patch, AsyncMock
+        from unittest.mock import patch
 
         company_list = [sample_company_data.copy()]
         company_list[0]["code"] = "000001"
@@ -29,25 +28,17 @@ class TestYearsParameter:
                 assert call_args[1]["years"] == 5
 
     def test_years_extracted_from_conditions(self, mock_redis):
-        service = FinancialService()
-        from unittest.mock import patch
-
         conditions = [
             {"metric": "roe", "operator": ">", "value": 10, "years": 3},
             {"metric": "roi", "operator": "<", "value": 20, "years": 7},
         ]
-        period = conditions[0].get("period", "annual") if conditions else "annual"
         years = conditions[0].get("years", 5) if conditions else 5
         assert years == 3
 
-        period2 = conditions[1].get("period", "annual") if len(conditions) > 1 else "annual"
         years2 = conditions[1].get("years", 5) if len(conditions) > 1 else 5
         assert years2 == 7
 
     def test_default_years_when_not_specified(self, mock_redis):
-        service = FinancialService()
-        from unittest.mock import patch
-
         conditions = [{"metric": "roe", "operator": ">", "value": 10}]
         years = conditions[0].get("years", 5) if conditions else 5
         assert years == 5

@@ -1,18 +1,48 @@
 from fastapi import APIRouter
 
-from app.models.schemas import MetricsListResponse, MetricInfo
+from app.models.schemas import MetricsListResponse, DerivedMetric, RawAccountingItem
 from app.services.financial import FinancialService
+from app.db.database import db_manager
+from app.db.models import AccountingItem
+from sqlalchemy import select
 
 router = APIRouter()
 
 
-def get_metrics_list() -> list[MetricInfo]:
+def get_derived_metrics() -> list[DerivedMetric]:
     return [
-        MetricInfo(id=metric_id, name=info["name"], category=info["category"])
+        DerivedMetric(
+            id=metric_id,
+            name=info["name"],
+            category=info["category"],
+            formula=info.get("formula"),
+        )
         for metric_id, info in FinancialService.METRIC_DEFINITIONS.items()
     ]
 
 
+async def get_raw_accounting_items() -> list[RawAccountingItem]:
+    raw_items = []
+    try:
+        await db_manager.init("postgresql+asyncpg://stock_user:stock_pass@localhost:5432/stock_db")
+        async with db_manager.session() as session:
+            result = await session.execute(select(AccountingItem))
+            items = result.scalars().all()
+            for item in items:
+                raw_items.append(
+                    RawAccountingItem(
+                        name=item.name,
+                        report_type=item.report_type or "unknown",
+                        category=item.category,
+                    )
+                )
+    except Exception:
+        raw_items = []
+    return raw_items
+
+
 @router.get("/metrics", response_model=MetricsListResponse)
 async def get_metrics() -> MetricsListResponse:
-    return MetricsListResponse(metrics=get_metrics_list())
+    derived = get_derived_metrics()
+    raw_items = await get_raw_accounting_items()
+    return MetricsListResponse(derived_metrics=derived, raw_items=raw_items)

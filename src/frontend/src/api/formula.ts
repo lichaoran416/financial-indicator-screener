@@ -77,3 +77,20 @@ export const deleteFormula = async (formulaId: string): Promise<boolean> => {
   );
   return response.data.deleted;
 };
+
+export interface FormulaUpdateRequest {
+  name?: string;
+  formula?: string;
+  description?: string;
+}
+
+export const updateFormula = async (
+  formulaId: string,
+  request: FormulaUpdateRequest
+): Promise<FormulaResponse> => {
+  const response = await apiClient.put<FormulaResponse>(
+    `/formula/${formulaId}`,
+    request
+  );
+  return response.data;
+};

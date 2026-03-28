@@ -1,6 +1,6 @@
 import pytest
-from unittest.mock import patch, AsyncMock
-from app.services.formula_service import FormulaService, Formula, formula_service
+from unittest.mock import patch
+from app.services.formula_service import FormulaService, Formula
 from app.core.redis import RedisManager
 
 

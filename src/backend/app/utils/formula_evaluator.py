@@ -59,13 +59,13 @@ class FormulaEvaluator:
                 left_padded = left_val + [0.0] * (max_len - len(left_val))
                 right_padded = right_val + [0.0] * (max_len - len(right_val))
                 if node.operator == "+":
-                    return [l + r for l, r in zip(left_padded, right_padded)]
+                    return [lv + rv for lv, rv in zip(left_padded, right_padded)]
                 elif node.operator == "-":
-                    return [l - r for l, r in zip(left_padded, right_padded)]
+                    return [lv - rv for lv, rv in zip(left_padded, right_padded)]
                 elif node.operator == "*":
-                    return [l * r for l, r in zip(left_padded, right_padded)]
+                    return [lv * rv for lv, rv in zip(left_padded, right_padded)]
                 elif node.operator == "/":
-                    return [l / r if r != 0 else 0.0 for l, r in zip(left_padded, right_padded)]
+                    return [lv / rv if rv != 0 else 0.0 for lv, rv in zip(left_padded, right_padded)]
             elif isinstance(left_val, list):
                 scalar = right_val
                 if node.operator == "+":
