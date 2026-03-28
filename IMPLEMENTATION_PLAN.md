@@ -32,6 +32,14 @@ A stock analysis tool for A-share market that screens/ranks companies using cust
 - **FIX (2026-03-29)**: Fixed mypy `datetime.UTC` attribute error in `sync.py`
   - Changed `from datetime import UTC` to `from datetime import timezone`
   - Changed `datetime.now(UTC)` to `datetime.now(timezone.utc)` to fix mypy false positive
+- **Runtime errors in logs**: Fixed akshare_client error handling for None returns
+
+---
+
+## Bugs Fixed
+
+- Fixed akshare_client.py `_retry_async` not handling None returns - added check to raise AkshareAPIError when function returns None
+- Fixed all AkshareClient methods not properly logging errors when AkshareAPIError was re-raised - changed `except AkshareAPIError: raise` to `except AkshareAPIError as e: error_msg = str(e); raise`
 
 ---
 

@@ -22,7 +22,12 @@ class AkshareClient:
         for attempt in range(self._max_retries):
             try:
                 loop = asyncio.get_event_loop()
-                return await loop.run_in_executor(None, func, *args, **kwargs)
+                result = await loop.run_in_executor(None, func, *args, **kwargs)
+                if result is None:
+                    raise AkshareAPIError(f"{func.__name__} returned None")
+                return result
+            except AkshareAPIError:
+                raise
             except Exception as e:
                 last_error = e
                 if attempt < self._max_retries - 1:
@@ -47,7 +52,8 @@ class AkshareClient:
                 raise AkshareAPIError(error_msg)
             success = True
             return df
-        except AkshareAPIError:
+        except AkshareAPIError as e:
+            error_msg = str(e)
             raise
         except Exception as e:
             error_msg = str(e)
@@ -80,7 +86,8 @@ class AkshareClient:
                 raise AkshareAPIError(error_msg)
             success = True
             return self._filter_by_year(df, start_year, end_year)
-        except AkshareAPIError:
+        except AkshareAPIError as e:
+            error_msg = str(e)
             raise
         except Exception as e:
             error_msg = str(e)
@@ -120,7 +127,8 @@ class AkshareClient:
                 raise AkshareAPIError(error_msg)
             success = True
             return df
-        except AkshareAPIError:
+        except AkshareAPIError as e:
+            error_msg = str(e)
             raise
         except Exception as e:
             error_msg = str(e)
@@ -151,7 +159,8 @@ class AkshareClient:
                 raise AkshareAPIError(error_msg)
             success = True
             return self._parse_company_info(df)
-        except AkshareAPIError:
+        except AkshareAPIError as e:
+            error_msg = str(e)
             raise
         except Exception as e:
             error_msg = str(e)
@@ -195,7 +204,8 @@ class AkshareClient:
                 )
             success = True
             return result
-        except AkshareAPIError:
+        except AkshareAPIError as e:
+            error_msg = str(e)
             raise
         except Exception as e:
             error_msg = str(e)
@@ -242,7 +252,8 @@ class AkshareClient:
 
             success = True
             return result
-        except AkshareAPIError:
+        except AkshareAPIError as e:
+            error_msg = str(e)
             raise
         except Exception as e:
             error_msg = str(e)
